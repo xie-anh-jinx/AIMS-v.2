@@ -1,0 +1,16 @@
+{
+  "name": "academic-ai-system",
+  "version": "1.0.0",
+  "description": "AIMS Monorepo runner",
+  "private": true,
+  "scripts": {
+    "predev": "docker compose up -d || echo '[INFO] Docker unavailable, using local DB...' && fuser -k 8000/tcp 2>/dev/null || true",
+    "dev": "concurrently -c \"cyan,magenta,yellow,blue,green\" -n \"BACKEND,FRONTEND,ADMIN,TELEGRAM,OPENCLAW\" \"bash -c 'set -a && source .env && set +a && source venv/bin/activate && PYTHONPATH=. uvicorn apps.backend.main:app --host 0.0.0.0 --port 8000 --reload'\" \"cd apps/frontend && pnpm dev\" \"cd apps/admin && pnpm dev -p 3002\" \"bash -c 'sleep 4 && set -a && source .env && set +a && source venv/bin/activate && PYTHONPATH=. python -m apps.telegram_bot.bot'\" \"openclaw gateway\"",
+    "stop": "fuser -k 8000/tcp 2>/dev/null; pkill -f 'next dev' 2>/dev/null; pkill -f telegram_bot 2>/dev/null; pkill -f openclaw 2>/dev/null; echo 'All AIMS services stopped.'",
+    "db:migrate": "bash -c 'set -a && source .env && set +a && source venv/bin/activate && PYTHONPATH=. alembic upgrade head'",
+    "db:seed": "bash -c 'set -a && source .env && set +a && source venv/bin/activate && PYTHONPATH=. python scripts/seed.py'"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  }
+}

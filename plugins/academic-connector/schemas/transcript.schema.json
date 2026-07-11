@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "AIMS Transcript Record",
+  "type": "object",
+  "required": ["student_id", "cumulative_gpa"],
+  "properties": {
+    "student_id": { "type": "string", "minLength": 1 },
+    "full_name": { "type": "string" },
+    "study_program": { "type": "string" },
+    "semester": { "type": ["integer", "null"], "minimum": 1, "maximum": 14 },
+    "semester_gpa": { "type": ["number", "null"], "minimum": 0, "maximum": 4.0 },
+    "cumulative_gpa": { "type": "number", "minimum": 0, "maximum": 4.0 },
+    "total_credits": { "type": ["integer", "null"], "minimum": 0 },
+    "enrollment_year": { "type": ["integer", "null"] },
+    "academic_status": { "type": ["string", "null"] }
+  }
+}

@@ -1,0 +1,10 @@
+fastapi
+uvicorn
+pydantic
+pydantic-settings
+SQLAlchemy
+psycopg2-binary
+redis
+celery
+playwright
+beautifulsoup4

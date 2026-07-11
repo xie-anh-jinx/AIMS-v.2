@@ -1,0 +1,27 @@
+# ==================================================
+# API Internal Routes Map (REST Endpoints)
+# ==================================================
+
+login_portal: "https://backoffice.neosia.unhas.ac.id/login"
+api_base: "https://api.neosia.unhas.ac.id" 
+
+routes:
+  login_submit:
+    method: "POST"
+    path: "/auth/login_submit"
+    
+  students:
+    method: "GET"
+    path: "/api/admin/mahasiswa"
+    
+  transcript:
+    method: "GET"
+    path: "/api/admin/transkrip/getTranskripMahasiswa"
+    
+  khs:
+    method: "GET"
+    path: "/api/admin/khs"
+    
+  progress:
+    method: "GET"
+    path: "/api/admin/kemajuan"

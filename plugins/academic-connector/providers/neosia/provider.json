@@ -1,0 +1,12 @@
+{
+  "name": "NeoSIA",
+  "version": "1.0",
+  "organization": "Universitas Hasanuddin",
+  "supports": [
+    "transcript",
+    "khs",
+    "students",
+    "progress"
+  ],
+  "engine_requirements": "REST"
+}

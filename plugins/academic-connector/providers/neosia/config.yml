@@ -1,0 +1,57 @@
+# ==================================================
+# Academic Connector Configuration
+# ==================================================
+
+provider: "generic"
+
+# Portal Configuration
+portal:
+  baseUrl: "https://backoffice.neosia.unhas.ac.id"
+  loginUrl: "/login"
+
+# Authentication (use env vars in production)
+auth:
+  username: "199410192026016001"
+  password: "64734"
+
+# Browser Configuration
+browser:
+  engine: "playwright"
+  headless: true
+  timeout: 90000
+  slowMo: 0
+  viewport:
+    width: 1366
+    height: 768
+
+# Retry Policy
+retry:
+  maxAttempts: 3
+  delay: 1000
+  exponentialBackoff: true
+
+# Screenshot
+screenshot:
+  enabled: true
+  path: "./screenshots"
+
+# Logging
+logging:
+  level: "info"
+  path: "./logs"
+
+# API AIMS
+api:
+  endpoint: "http://localhost:8000/api/sync/transcript"
+  timeout: 30000
+
+# Scheduler
+scheduler:
+  enabled: false
+  cron: "0 2 * * *"
+
+# Validation
+validation:
+  skipEmptyRow: true
+  requireNIM: true
+  requireIPK: true

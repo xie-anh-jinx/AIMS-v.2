@@ -1,0 +1,17 @@
+# ==================================================
+# Field Mapping: Portal → AIMS DB Schema
+# ==================================================
+# Kunci kiri  = nama kolom dari HTML portal universitas
+# Kunci kanan = nama field standar AIMS
+
+nim: student_id
+nama: full_name
+program_studi: study_program
+semester: semester
+ips: semester_gpa
+ipk: cumulative_gpa
+total_sks: total_credits
+angkatan: enrollment_year
+status: academic_status
+email: email
+nomor_whatsapp: whatsapp_number

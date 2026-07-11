@@ -1,0 +1,17 @@
+{
+  "name": "Academic Connector",
+  "version": "3.0.0",
+  "description": "Integration Gateway SDK v3 (Hybrid Multi-Account)",
+  "author": "AIMS",
+  "mode": "hybrid",
+  "providers": ["neosia", "sikola"],
+  "supports": [
+    "students",
+    "transcript",
+    "khs",
+    "schedule",
+    "advisor",
+    "events"
+  ],
+  "required_permission": "ReadOnly"
+}

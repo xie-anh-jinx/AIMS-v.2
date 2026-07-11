@@ -1,0 +1,34 @@
+# ==================================================
+# DOM Selectors (per-halaman)
+# ==================================================
+
+login:
+  username: "#username"
+  password: "#password"
+  submit: "button[type='submit']"
+
+dashboard:
+  ready: ".dashboard"
+
+menu:
+  academic: "#menuAcademic"
+  transcript: "#menuTranscript"
+  khs: "#menuKHS"
+  progress: "#menuProgress"
+
+student:
+  programStudy: "#program_studi"
+  angkatan: "#angkatan"
+  nim: "#nim"
+  searchButton: "#search"
+
+table:
+  transcript: "table tbody tr"
+  khs: "table tbody tr"
+  progress: "table tbody tr"
+
+loading:
+  spinner: ".loading"
+
+logout:
+  button: "#logout"

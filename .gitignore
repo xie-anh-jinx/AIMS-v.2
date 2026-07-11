@@ -1,0 +1,36 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+venv/
+.env
+*.egg-info/
+dist/
+build/
+
+# Node
+node_modules/
+.next/
+.cache/
+*.log
+out/
+dist/
+
+# Database dumps / logs
+*.json.bak
+dev.log
+sync.log
+full_log.txt
+out.log
+
+# Playwright / Screenshots
+plugins/academic-connector/screenshots/
+plugins/academic-connector/dump-rendered.html
+
+# Misc
+.DS_Store
+*.bak
+
+# Secrets
+.env
+plugins/academic-connector/.env

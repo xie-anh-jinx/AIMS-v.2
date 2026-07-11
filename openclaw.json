@@ -1,0 +1,46 @@
+{
+  "identity": {
+    "name": "AIMS Academic Bot",
+    "emoji": "🎓"
+  },
+  "channels": {
+    "whatsapp": {
+      "dmPolicy": "allowlist",
+      "allowFrom": ["*"],
+      "groupPolicy": "open",
+      "sendReadReceipts": false,
+      "ackReaction": { "emoji": "🎓", "direct": true },
+      "textChunkLimit": 2000,
+      "chunkMode": "newline"
+    },
+    "telegram": {
+      "enabled": false,
+      "botToken": "8947130178:AAG8Kn3p-BwvN0AQdOz3qIq_h0AAyX68tHk",
+      "dmPolicy": "open",
+      "allowFrom": ["*"],
+      "groupPolicy": "open",
+      "groups": {
+        "*": { "requireMention": true }
+      }
+    }
+  },
+  "agents": {
+    "list": [
+      {
+        "id": "aims-bot",
+        "name": "AIMS Academic Bot",
+        "description": "Bot akademik AIMS untuk notifikasi dan konsultasi mahasiswa",
+        "instructions": "Kamu adalah asisten akademik AIMS (Academic Intelligence Management System). Tugasmu adalah membantu mahasiswa dan dosen terkait informasi akademik. Balas dengan singkat, ramah, dan profesional dalam Bahasa Indonesia."
+      }
+    ]
+  },
+  "gateway": {
+    "http": {
+      "enabled": true,
+      "port": 18789,
+      "endpoints": {
+        "responses": { "enabled": true }
+      }
+    }
+  }
+}

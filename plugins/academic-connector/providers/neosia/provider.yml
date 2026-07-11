@@ -1,0 +1,32 @@
+# ==================================================
+# Provider Specific Navigation & Workflow Logic
+# ==================================================
+
+navigation:
+  home: "/kemahasiswaan"
+  studentList: "/kemahasiswaan/daftar-mahasiswa"
+
+workflow:
+  transcript:
+    filter:
+      angkatan:
+        start: 2017
+        end: 2025
+    actions:
+      - transcript
+      
+  khs:
+    filter:
+      angkatan:
+        start: 2017
+        end: 2025
+    actions:
+      - khs
+      
+  progress:
+    filter:
+      angkatan:
+        start: 2017
+        end: 2025
+    actions:
+      - progress

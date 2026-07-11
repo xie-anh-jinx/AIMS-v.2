@@ -1,12 +1,12 @@
 # Academic Intelligence Management System (AIMS)
 
-Academic Intelligence Management System (AIMS) adalah platform sistem informasi akademik terintegrasi yang dirancang untuk institusi pendidikan tinggi (dengan studi kasus purwarupa Fakultas Ilmu Budaya). Platform ini berfokus pada manajemen data akademik (berbasis *Role-Based Access Control*), pemantauan berkala, dan implementasi Sistem Peringatan Dini Akademik (*Academic Early-Warning System*).
+Academic Intelligence Management System (AIMS) adalah platform sistem informasi akademik terintegrasi yang dirancang untuk institusi pendidikan tinggi. Platform ini berfokus pada manajemen data akademik (berbasis *Role-Based Access Control*), pemantauan berkala, dan implementasi Sistem Peringatan Dini Akademik (*Academic Early-Warning System*).
 
 ---
 
 ## 📌 Deskripsi Sistem
 
-Berbeda dengan sistem informasi akademik konvensional yang mencatat data secara pasif, AIMS dirancang secara proaktif. Sistem melakukan pemantauan performa mahasiswa (Indeks Prestasi Kumulatif/IPK) secara otomatis dan berkala. Apabila sistem mendeteksi indikasi penurunan prestasi akademik atau risiko putus studi (*drop-out*), modul kecerdasan (*Rule Engine*) akan secara otomatis memicu pengiriman notifikasi peringatan kepada mahasiswa maupun pemberitahuan kepada Dosen Penasehat Akademik (PA).
+Berbeda dengan sistem informasi akademik konvensional yang mencatat data secara pasif, AIMS dirancang secara proaktif. Sistem melakukan pemantauan performa mahasiswa (Indeks Prestasi Kumulatif/IPK) secara otomatis dan berkala. Apabila sistem mendeteksi indikasi penurunan prestasi akademik atau risiko putus studi (*drop-out*), modul (*Rule Engine*) akan secara otomatis memicu pengiriman notifikasi peringatan kepada mahasiswa maupun pemberitahuan kepada Dosen Penasehat Akademik (PA).
 
 Sistem ini dikembangkan menggunakan kerangka arsitektur *Microservices* mandiri pada repositori tunggal (*monorepo*). Secara teknis, platform ini memisahkan layanan pengolahan data (backend), penyajian antarmuka (frontend mahasiswa dan dosen, serta dasbor administrator), dan modul otomatisasi evaluasi.
 

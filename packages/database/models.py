@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Float, ForeignKey, DateTime, Text
+from sqlalchemy import Column, Integer, String, Float, ForeignKey, DateTime, Text, Boolean
 from sqlalchemy.orm import declarative_base, relationship
 from datetime import datetime
 
@@ -117,6 +117,22 @@ class ConsultationLog(Base):
     type = Column(String) 
     status = Column(String) 
     notes = Column(Text, nullable=True)
+    is_archived_by_sender = Column(Boolean, default=False)
+    is_archived_by_receiver = Column(Boolean, default=False)
 
     student = relationship("Student")
+    advisor = relationship("Advisor")
+
+class AdminNote(Base):
+    __tablename__ = 'admin_notes'
+
+    id = Column(Integer, primary_key=True, index=True)
+    advisor_id = Column(Integer, ForeignKey('advisors.id'))
+    date = Column(DateTime, default=datetime.utcnow)
+    type = Column(String) 
+    status = Column(String) 
+    notes = Column(Text, nullable=True)
+    is_archived_by_sender = Column(Boolean, default=False)
+    is_archived_by_receiver = Column(Boolean, default=False)
+
     advisor = relationship("Advisor")

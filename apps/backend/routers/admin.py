@@ -191,3 +191,82 @@ def get_risk_students(
             "advisor_name": adv_name or "Belum Ditentukan"
         })
     return out
+
+@router.get("/advisors")
+def get_all_advisors(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    if current_user.role != "ADMIN":
+        raise HTTPException(status_code=403, detail="Not authorized")
+    from packages.database.models import Advisor
+    advisors = db.query(Advisor).all()
+    return [{"id": a.id, "nama": a.nama} for a in advisors]
+
+from pydantic import BaseModel
+class AdminNoteCreate(BaseModel):
+    advisor_id: int
+    type: str
+    status: str
+    notes: str
+
+@router.post("/advisor-notes")
+def create_admin_note(
+    payload: AdminNoteCreate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    if current_user.role != "ADMIN":
+        raise HTTPException(status_code=403, detail="Not authorized")
+    from packages.database.models import AdminNote
+    note = AdminNote(
+        advisor_id=payload.advisor_id,
+        type=payload.type,
+        status=payload.status,
+        notes=payload.notes
+    )
+    db.add(note)
+    db.commit()
+    return {"message": "Admin note created"}
+
+@router.get("/advisor-notes/sent")
+def get_sent_admin_notes(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    if current_user.role != "ADMIN":
+        raise HTTPException(status_code=403, detail="Not authorized")
+    from packages.database.models import AdminNote, Advisor
+    notes = db.query(AdminNote, Advisor).join(Advisor, AdminNote.advisor_id == Advisor.id).filter(
+        AdminNote.is_archived_by_sender == False
+    ).order_by(AdminNote.date.desc()).all()
+    
+    out = []
+    for n, adv in notes:
+        out.append({
+            "id": n.id,
+            "advisor_name": adv.nama,
+            "type": n.type,
+            "status": n.status,
+            "notes": n.notes,
+            "date": n.date.strftime("%Y-%m-%d %H:%M:%S")
+        })
+    return out
+
+@router.delete("/advisor-notes/{note_id}")
+def delete_admin_note(
+    note_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    if current_user.role != "ADMIN":
+        raise HTTPException(status_code=403, detail="Not authorized")
+    from packages.database.models import AdminNote
+    note = db.query(AdminNote).filter(AdminNote.id == note_id).first()
+    if not note:
+        raise HTTPException(status_code=404, detail="Note not found")
+    
+    # Soft delete for sender
+    note.is_archived_by_sender = True
+    db.commit()
+    return {"message": "Note deleted"}

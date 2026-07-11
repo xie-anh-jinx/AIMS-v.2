@@ -38,13 +38,24 @@ def check_student_access(student: Student, current_user: User, db: Session):
     raise HTTPException(status_code=403, detail="Tidak memiliki hak akses untuk data mahasiswa ini")
 
 @router.get("/", response_model=List[StudentResponse])
-def get_students(skip: int = 0, limit: int = 5000, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+def get_students(
+    skip: int = 0,
+    limit: int = 5000,
+    include_do: bool = False,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
     query = db.query(Student)
     if current_user.role == "ADVISOR":
         advisor = db.query(Advisor).filter(Advisor.user_id == current_user.id).first()
         if advisor:
             query = query.filter(Student.advisor_id == advisor.id)
-            query = query.filter(Student.status != 'Lulus')
+            if not include_do:
+                # Default: only show active + cuti students in main list
+                query = query.filter(Student.status.in_(['Aktif', 'Cuti']))
+            else:
+                # include_do=true: return all including Drop Out & Non Aktif (for DO section)
+                pass
         else:
             return []
 
@@ -144,11 +155,50 @@ def get_student_transcript(nim: str, db: Session = Depends(get_db), current_user
 
 @router.get("/{nim}/records", response_model=List[AcademicRecordResponse])
 def get_student_records(nim: str, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    from sqlalchemy import func
     student = db.query(Student).filter(Student.nim == nim).first()
     if not student:
         raise HTTPException(status_code=404, detail="Student not found")
     check_student_access(student, current_user, db)
+    
+    # Calculate REAL SKS from grades table (same source as transcript detail view)
+    real_sks_result = db.query(func.sum(Course.sks)).join(
+        Grade, Grade.course_id == Course.id
+    ).filter(Grade.student_id == student.id).scalar()
+    real_sks = int(real_sks_result or 0)
+    
+    # Calculate REAL IPK from grades table
+    weighted_sum = db.query(func.sum(Grade.bobot * Course.sks)).join(
+        Course, Grade.course_id == Course.id
+    ).filter(Grade.student_id == student.id).scalar()
+    real_ipk = round(float(weighted_sum) / real_sks, 2) if real_sks > 0 else None
+
     records = db.query(AcademicRecord).filter(AcademicRecord.student_id == student.id).order_by(AcademicRecord.semester.desc()).all()
+    
+    # Sync AcademicRecord with real data if grades exist
+    if real_sks > 0 and records:
+        # Update first/latest record with real calculated values
+        latest = records[0]
+        if latest.sks != real_sks or (real_ipk and abs(latest.ipk - real_ipk) > 0.01):
+            latest.sks = real_sks
+            if real_ipk:
+                latest.ipk = real_ipk
+            db.commit()
+            db.refresh(latest)
+    elif real_sks > 0 and not records:
+        # Create a record if none exist
+        new_r = AcademicRecord(
+            student_id=student.id,
+            semester=student.semester or 2,
+            sks=real_sks,
+            ipk=real_ipk or 0.0,
+            ips=real_ipk or 0.0,
+            status="AKTIF"
+        )
+        db.add(new_r)
+        db.commit()
+        records = [new_r]
+
     return records
 
 @router.get("/{nim}/consultations", response_model=List[Dict[str, Any]])
@@ -158,7 +208,10 @@ def get_student_consultations(nim: str, db: Session = Depends(get_db), current_u
         raise HTTPException(status_code=404, detail="Student not found")
     check_student_access(student, current_user, db)
         
-    logs = db.query(ConsultationLog).filter(ConsultationLog.student_id == student.id).order_by(ConsultationLog.date.desc()).all()
+    logs = db.query(ConsultationLog).filter(
+        ConsultationLog.student_id == student.id,
+        ConsultationLog.is_archived_by_receiver == False
+    ).order_by(ConsultationLog.date.desc()).all()
     
     res = []
     for log in logs:
@@ -172,6 +225,29 @@ def get_student_consultations(nim: str, db: Session = Depends(get_db), current_u
             "notes": log.notes
         })
     return res
+
+@router.patch("/{nim}/consultations/{log_id}/archive")
+def archive_student_consultation(
+    nim: str,
+    log_id: int,
+    db: Session = Depends(get_db), 
+    current_user: User = Depends(get_current_user)
+):
+    student = db.query(Student).filter(Student.nim == nim).first()
+    if not student:
+        raise HTTPException(status_code=404, detail="Student not found")
+    check_student_access(student, current_user, db)
+        
+    log = db.query(ConsultationLog).filter(ConsultationLog.id == log_id, ConsultationLog.student_id == student.id).first()
+    if not log:
+        raise HTTPException(status_code=404, detail="Consultation log not found")
+        
+    if log.status != "Selesai":
+        raise HTTPException(status_code=400, detail="Hanya catatan yang sudah Selesai yang bisa disembunyikan")
+        
+    log.is_archived_by_receiver = True
+    db.commit()
+    return {"message": "Catatan berhasil dihapus dari riwayat Anda"}
 
 @router.put("/{nim}/profile")
 def update_student_profile(nim: str, payload: ProfileUpdateRequest, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):

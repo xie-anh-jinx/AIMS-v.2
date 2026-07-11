@@ -26,7 +26,10 @@ def get_consultations(db: Session = Depends(get_db), current_user: User = Depend
     if not advisor:
         return []
     
-    logs = db.query(ConsultationLog).filter(ConsultationLog.advisor_id == advisor.id).order_by(ConsultationLog.date.desc()).all()
+    logs = db.query(ConsultationLog).filter(
+        ConsultationLog.advisor_id == advisor.id,
+        ConsultationLog.is_archived_by_sender == False
+    ).order_by(ConsultationLog.date.desc()).all()
     
     res = []
     for log in logs:
@@ -70,6 +73,27 @@ def add_consultation(
     db.commit()
     return {"status": "success"}
 
+@router.patch("/consultations/{log_id}/archive")
+def archive_consultation(
+    log_id: int,
+    db: Session = Depends(get_db), 
+    current_user: User = Depends(get_current_user)
+):
+    if current_user.role != "ADVISOR":
+        raise HTTPException(status_code=403, detail="Hanya Advisor yang diizinkan")
+    
+    advisor = db.query(Advisor).filter(Advisor.user_id == current_user.id).first()
+    if not advisor:
+        raise HTTPException(status_code=404, detail="Profil Advisor tidak ditemukan")
+        
+    log = db.query(ConsultationLog).filter(ConsultationLog.id == log_id, ConsultationLog.advisor_id == advisor.id).first()
+    if not log:
+        raise HTTPException(status_code=404, detail="Log tidak ditemukan")
+        
+    log.is_archived_by_sender = True
+    db.commit()
+    return {"message": "Catatan berhasil dihapus dari riwayat Anda"}
+
 @router.put("/profile")
 def update_advisor_profile(
     payload: AdvisorProfileUpdateRequest, 
@@ -107,3 +131,52 @@ def update_advisor_profile(
 
     db.commit()
     return {"message": "Profil berhasil diperbarui"}
+
+@router.get("/admin-notes", response_model=List[Dict[str, Any]])
+def get_admin_notes(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    if current_user.role != "ADVISOR":
+        raise HTTPException(status_code=403, detail="Hanya Advisor yang diizinkan")
+    
+    advisor = db.query(Advisor).filter(Advisor.user_id == current_user.id).first()
+    if not advisor:
+        return []
+    
+    from packages.database.models import AdminNote
+    notes = db.query(AdminNote).filter(
+        AdminNote.advisor_id == advisor.id,
+        AdminNote.is_archived_by_receiver == False
+    ).order_by(AdminNote.date.desc()).all()
+    
+    res = []
+    for note in notes:
+        res.append({
+            "id": note.id,
+            "date": note.date.strftime("%d %b %Y, %H:%M"),
+            "type": note.type,
+        })
+    return res
+
+@router.patch("/admin-notes/{note_id}/archive")
+def archive_admin_note(
+    note_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    if current_user.role != "ADVISOR":
+        raise HTTPException(status_code=403, detail="Hanya Advisor yang diizinkan")
+    
+    advisor = db.query(Advisor).filter(Advisor.user_id == current_user.id).first()
+    if not advisor:
+        raise HTTPException(status_code=404, detail="Profil Advisor tidak ditemukan")
+        
+    from packages.database.models import AdminNote
+    note = db.query(AdminNote).filter(AdminNote.id == note_id, AdminNote.advisor_id == advisor.id).first()
+    if not note:
+        raise HTTPException(status_code=404, detail="Catatan admin tidak ditemukan")
+        
+    if note.status != "Selesai":
+        raise HTTPException(status_code=400, detail="Hanya catatan yang sudah 'Selesai' yang bisa dihapus")
+        
+    note.is_archived_by_receiver = True
+    db.commit()
+    return {"message": "Catatan admin berhasil dihapus dari riwayat Anda"}

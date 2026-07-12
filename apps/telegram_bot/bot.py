@@ -126,14 +126,11 @@ async def got_password(update: Update, context: ContextTypes.DEFAULT_TYPE):
     sess["role"] = actual_role
     sess["user_id"] = data.get("user_id")
     sess["username"] = username
-    sess["name"] = username
+    sess["name"] = data.get("name") or username
 
-    # If student, fetch NIM
+    # If student, NIM is their username
     if actual_role == "STUDENT":
-        students = await get_students(data["access_token"])
-        if students:
-            sess["nim"] = students[0]["nim"]
-            sess["name"] = students[0]["nama"]
+        sess["nim"] = username
 
     role_emoji = {"STUDENT": "🎓", "ADVISOR": "👨‍🏫", "ADMIN": "🛡️"}.get(actual_role, "👤")
     await update.message.reply_text(

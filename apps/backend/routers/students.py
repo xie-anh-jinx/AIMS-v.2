@@ -53,11 +53,10 @@ def get_students(
             if not include_do:
                 # Default: only show active + cuti students in main list
                 query = query.filter(Student.status.in_(['Aktif', 'Cuti']))
-            else:
-                # include_do=true: return all including Drop Out & Non Aktif (for DO section)
-                pass
         else:
             return []
+    elif current_user.role == "STUDENT":
+        query = query.filter(Student.user_id == current_user.id)
 
     return query.offset(skip).limit(limit).all()
 

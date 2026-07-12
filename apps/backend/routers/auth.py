@@ -25,6 +25,7 @@ class Token(BaseModel):
     token_type: str
     role: str
     user_id: int
+    name: Optional[str] = None
 
 def verify_password(plain_password, hashed_password):
     return bcrypt.checkpw(plain_password.encode('utf-8'), hashed_password.encode('utf-8'))
@@ -74,7 +75,20 @@ def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(), db:
         data={"sub": user.username, "role": user.role, "id": user.id},
         expires_delta=access_token_expires
     )
-    return {"access_token": access_token, "token_type": "bearer", "role": user.role, "user_id": user.id}
+    
+    user_name = user.username
+    if user.role == "STUDENT":
+        student = db.query(Student).filter(Student.user_id == user.id).first()
+        if student:
+            user_name = student.nama
+    elif user.role == "ADVISOR":
+        advisor = db.query(Advisor).filter(Advisor.user_id == user.id).first()
+        if advisor:
+            user_name = advisor.nama
+    elif user.role == "ADMIN":
+        user_name = "Administrator"
+
+    return {"access_token": access_token, "token_type": "bearer", "role": user.role, "user_id": user.id, "name": user_name}
 
 async def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
     credentials_exception = HTTPException(

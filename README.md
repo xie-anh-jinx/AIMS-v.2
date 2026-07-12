@@ -18,24 +18,26 @@ Sistem ini dikembangkan menggunakan kerangka arsitektur *Microservices* mandiri 
 Antarmuka sentral untuk pemangku kebijakan akademik tingkat perguruan tinggi.
 *   **Manajemen Data Mahasiswa:** Tabel inventarisasi data akademik mahasiswa dari seluruh program studi.
 *   **Analisis Profil Risiko:** Klasifikasi dan visualisasi statistik mahasiswa (menggunakan *Pie Chart* dan *Bar Chart*) ke dalam metrik zona risiko (Kritis, Peringatan, Stabil) berdasarkan IPK.
+*   **Catatan Administratif & Arsip:** Modul pengiriman instruksi khusus ke Dosen PA, dilengkapi kapabilitas *Soft-Delete* (*Archive*) berbasis status penyelesaian data tanpa merusak jejak log.
 *   **Konfigurasi Batas Evaluasi:** Formulir pengaturan batasan toleransi nilai (contoh: IPK < 2.00) dan pengaktifan modul integrasi notifikasi (Webhook OpenClaw).
 
 ### 2. Dasbor Dosen Penasehat Akademik (PA)
 Fasilitas monitoring untuk Dosen PA atas mahasiswa perwalian.
 *   **Visualisasi Kinerja Individu:** Identifikasi cepat mahasiswa yang berada pada kategori berisiko agar tindakan preventif dapat segera dilakukan.
-*   **Perekaman Konsultasi Peringatan:** Modul (tahap *mockup*) untuk mencatat tindak lanjut terhadap panggilan *High-Risk* dan status persetujuan KRS.
+*   **Perekaman Konsultasi Peringatan (Soft-Delete):** Modul interaktif untuk mencatat tindak lanjut pemanggilan akademik *High-Risk*, dengan validasi hapus/arsip yang hanya diizinkan mutlak bila status konsultasi telah "Selesai".
 *   **Push Notification System:** Menerima rekaman pemberitahuan tindakan otomatis dari *Agent Service* secara spesifik untuk mahasiswa bimbingannya.
 
 ### 3. Portal Mahasiswa
 Sistem informasi akses personal yang transparan.
 *   **Pemantauan Kelulusan:** Visualisasi grafik indikator perolehan SKS dan tren capaian IPS/IPK per semester.
-*   **Kotak Masuk Notifikasi Terpadu:** Modul pusat notifikasi peringatan akademis (contoh: *warning* IPK menurun) ataupun aktivitas administratif lainnya.
+*   **Kotak Masuk Notifikasi Terpadu:** Modul pusat peringatan akademis dan konfirmasi log konsultasi PA, mendukung UI dinamis menyembunyikan log yang sudah diselesaikan.
 *   **Simulasi Kartu Rencana Studi (KRS):** Tampilan daftar penyusunan KRS mahasiswa berdasarkan penawaran semester berjalan tingkat fakultas.
+*   **Akses Ekosistem Multi-Channel:** Terdapat fasilitas cek informasi IPK, peringatan *High-Risk*, dan *progress* SKS memalui antarmuka Telegram API Bot.
 
 ### 4. Background Job & Notifikasi Agentik (OpenClaw Engine)
 *   **Modul Evaluasi (Python APScheduler):** Sub-sistem otomatis yang memicu proses komputasi terhadap kinerja akademik seluruh mahasiswa pada satuan waktu yang dikonfigurasi.
 *   **Rule/Workflow Engine:** Logika pemeriksa standar akademik (*business logic*).
-*   **OpenClaw Node.js Automation:** Gateway *headless* atau penggerak untuk sistem eksternal, dieksekusi melalui perintah CLI yang berpotensi terkoneksi melalui saluran WhatsApp atau Telegram API.
+*   **Notification Dispatcher (OpenClaw & SMTP):** Modul yang dirancang merespons hasil evaluasi, otomatis menyebarkan peringatan IPK lewat konektor WhatsApp CLI (via *OpenClaw*) pada backend. (Pustaka dokumen `docs/integrasi_notifikasi.md`).
 
 ---
 

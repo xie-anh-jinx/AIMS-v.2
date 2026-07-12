@@ -17,6 +17,7 @@ export function middleware(request: NextRequest) {
   if (token && isLoginPage) {
     if (role === 'STUDENT') return NextResponse.redirect(new URL('/student', request.url));
     if (role === 'ADVISOR') return NextResponse.redirect(new URL('/advisor', request.url));
+    if (role === 'ADMIN') return NextResponse.redirect(new URL('/admin', request.url));
   }
 
   // Simple RBAC
@@ -25,6 +26,14 @@ export function middleware(request: NextRequest) {
   }
   
   if (path.startsWith('/advisor') && role !== 'ADVISOR') {
+     return NextResponse.redirect(new URL('/login', request.url));
+  }
+
+  if (path.startsWith('/admin') && role !== 'ADMIN') {
+     return NextResponse.redirect(new URL('/login', request.url));
+  }
+
+  if (path.startsWith('/prodi') && role !== 'PRODI') {
      return NextResponse.redirect(new URL('/login', request.url));
   }
 

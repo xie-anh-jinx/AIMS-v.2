@@ -11,6 +11,7 @@ export default function Home() {
     if (!token) { router.push('/login'); return; }
     if (role === 'STUDENT') router.push('/student');
     else if (role === 'ADVISOR') router.push('/advisor');
+    else if (role === 'ADMIN') router.push('/admin');
     else router.push('/login');
   }, [router]);
 

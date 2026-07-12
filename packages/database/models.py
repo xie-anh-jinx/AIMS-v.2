@@ -9,7 +9,16 @@ class User(Base):
     id = Column(Integer, primary_key=True, index=True)
     username = Column(String, unique=True, index=True) # nim, email, or admin
     hashed_password = Column(String)
-    role = Column(String) # ADMIN, ADVISOR, STUDENT
+    role = Column(String) # ADMIN, ADVISOR, STUDENT, PRODI
+    profile_picture = Column(Text, nullable=True)
+
+class ProdiAdmin(Base):
+    __tablename__ = 'prodi_admins'
+    
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey('users.id'), nullable=True)
+    nama = Column(String)
+    prodi_name = Column(String) # Tracks which prodi this admin manages
 
 class Student(Base):
     __tablename__ = 'students'
@@ -69,7 +78,8 @@ class Advisor(Base):
     email = Column(String)
     whatsapp = Column(String)
     telegram_username = Column(String, nullable=True)
-    
+    prodi = Column(String, nullable=True) # To link Advisor to a specific Prodi
+
     mahasiswa_bimbingan = relationship("Student", backref="advisor")
 
 class Reminder(Base):

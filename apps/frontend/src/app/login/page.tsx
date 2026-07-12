@@ -41,13 +41,26 @@ export default function LoginPage() {
       document.cookie = `role=${data.role}; path=/; max-age=86400`;
       document.cookie = `user_id=${data.user_id}; path=/; max-age=86400`;
       document.cookie = `nim=${username}; path=/; max-age=86400`;
+      if (data.name) {
+        document.cookie = `name=${encodeURIComponent(data.name)}; path=/; max-age=86400`;
+      }
+      if (data.prodi_name) {
+        document.cookie = `prodi_name=${encodeURIComponent(data.prodi_name)}; path=/; max-age=86400`;
+      }
+      if (data.profile_picture) {
+        localStorage.setItem('profile_picture', data.profile_picture);
+      } else {
+        localStorage.removeItem('profile_picture');
+      }
 
       if (data.role === 'STUDENT') {
         router.push('/student');
       } else if (data.role === 'ADVISOR') {
         router.push('/advisor');
       } else if (data.role === 'ADMIN') {
-        window.location.href = 'http://localhost:3002/';
+        router.push('/admin');
+      } else if (data.role === 'PRODI') {
+        router.push('/prodi');
       } else {
         setError('Akun ini tidak memiliki akses ke portal ini.');
       }

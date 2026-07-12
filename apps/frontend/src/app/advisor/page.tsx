@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Users, AlertTriangle, TrendingDown, ClipboardList, LogOut, ChevronRight, Bell, BarChart2, Edit2, Trash } from 'lucide-react';
+import { Users, AlertTriangle, TrendingDown, ClipboardList, LogOut, ChevronRight, Bell, BarChart2, Edit2, Trash, User } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
@@ -42,9 +42,12 @@ export default function AdvisorDashboard() {
   
   // Profile Update State
   const [showProfileModal, setShowProfileModal] = useState(false);
-  const [profileForm, setProfileForm] = useState({ username: '', password: '', email: '', whatsapp: '', telegram_username: '' });
+  const [profileForm, setProfileForm] = useState({ username: '', password: '', email: '', whatsapp: '', telegram_username: '', profile_picture: '' });
   const [submittingProfile, setSubmittingProfile] = useState(false);
   const [doStudents, setDoStudents] = useState<Student[]>([]); // Drop Out students
+  const [profilePictureUrl, setProfilePictureUrl] = useState<string | null>(null);
+  const [advisorName, setAdvisorName] = useState<string>('Dosen PA');
+  const [advisorNip, setAdvisorNip] = useState<string>('');
 
   useEffect(() => {
     const fetchData = async () => {
@@ -115,13 +118,21 @@ export default function AdvisorDashboard() {
           setAdminNotes(Array.isArray(aData) ? aData : []);
         }
 
-      } catch (error) {
-        console.error('Failed to fetch data:', error);
+      } catch (e) {
+        console.error(e);
       } finally {
         setLoading(false);
       }
     };
     fetchData();
+    const cachedPic = localStorage.getItem('profile_picture');
+    if (cachedPic) setProfilePictureUrl(cachedPic);
+    
+    const nameMatch = document.cookie.match(/(^| )name=([^;]+)/);
+    if(nameMatch) setAdvisorName(decodeURIComponent(nameMatch[2]));
+    
+    const nimMatch = document.cookie.match(/(^| )nim=([^;]+)/);
+    if(nimMatch) setAdvisorNip(decodeURIComponent(nimMatch[2]));
   }, []);
 
   const hideAdminNote = async (id: number) => {
@@ -246,6 +257,15 @@ export default function AdvisorDashboard() {
       if (res.ok) {
         alert("Profil berhasil diperbarui!");
         setShowProfileModal(false);
+        if (profileForm.profile_picture) {
+           await fetch(`${API_URL}/auth/profile-picture`, {
+             method: 'PUT',
+             headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+             body: JSON.stringify({ profile_picture: profileForm.profile_picture })
+           });
+           setProfilePictureUrl(profileForm.profile_picture);
+           localStorage.setItem('profile_picture', profileForm.profile_picture);
+        }
       } else {
         const d = await res.json();
         alert(d.detail || "Gagal memperbarui profil.");
@@ -275,23 +295,42 @@ export default function AdvisorDashboard() {
   return (
     <div className="flex min-h-screen">
       {/* Sidebar */}
-      <aside className="w-64 glass-sidebar p-6 flex flex-col fixed h-full z-20">
-        <div className="mb-8">
-          <div className="w-12 h-12 rounded-xl bg-gradient-to-tr from-purple-500 to-pink-500 flex items-center justify-center text-white font-bold text-xl mb-3">
-            PA
+      <aside className="w-[280px] bg-[#111827] flex flex-col fixed h-full z-20 border-r border-[#1f2937]">
+        <div className="p-6 pb-6">
+          <div className="flex flex-col items-center justify-center text-center mb-6">
+            <div className="w-20 h-20 rounded-xl overflow-hidden bg-gradient-to-tr from-slate-700 to-slate-800 border border-slate-600 mb-3 flex items-center justify-center text-white">
+              {profilePictureUrl ? (
+                <img src={profilePictureUrl} alt="Profile" className="w-full h-full object-cover" />
+              ) : (
+                <User size={40} className="text-slate-400" />
+              )}
+            </div>
+            <div>
+              <p className="text-[15px] font-bold text-slate-200">{advisorName}</p>
+              <p className="text-xs text-slate-400 mt-1">{advisorNip || 'NIP Tidak Tersedia'}</p>
+              <p className="text-xs text-slate-500 font-medium mt-1">Dosen Penasihat Akademik</p>
+            </div>
           </div>
-          <h2 className="text-lg font-bold bg-clip-text text-transparent bg-gradient-to-r from-purple-400 to-pink-400">Dosen PA</h2>
-          <p className="text-slate-400 text-xs">Penasihat Akademik</p>
           <button 
-           onClick={() => setShowProfileModal(true)}
-           className="mt-4 flex items-center justify-center gap-2 w-full py-1.5 px-3 rounded-lg bg-purple-500/10 hover:bg-purple-500/20 text-purple-400 text-xs font-semibold transition"
+           onClick={() => {
+             setProfileForm({ 
+               username: '', 
+               password: '', 
+               email: '', 
+               whatsapp: '', 
+               telegram_username: '',
+               profile_picture: ''
+             });
+             setShowProfileModal(true);
+           }}
+           className="flex items-center justify-center gap-2 w-full py-2 px-3 rounded-lg bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 text-xs font-semibold transition"
           >
             <Edit2 size={12} />
             Pengaturan Profil
           </button>
         </div>
 
-        <nav className="flex-1 space-y-1">
+        <nav className="flex-1 space-y-1 px-4">
           {[
             { icon: Users, label: 'Mahasiswa Saya' },
             { icon: AlertTriangle, label: 'Risiko Akademik' },
@@ -313,13 +352,13 @@ export default function AdvisorDashboard() {
           })}
         </nav>
 
-        <button onClick={handleLogout} className="flex items-center gap-3 px-4 py-3 w-full rounded-xl text-slate-400 hover:text-red-400 hover:bg-red-500/10 transition mt-4">
+        <button onClick={handleLogout} className="flex items-center gap-3 px-4 py-3 w-full rounded-xl text-slate-400 hover:text-red-400 hover:bg-red-500/10 transition mt-4 mb-4">
           <LogOut size={18} /><span className="text-sm">Keluar</span>
         </button>
       </aside>
 
       {/* Main */}
-      <main className="flex-1 ml-64 p-8 overflow-y-auto">
+      <main className="flex-1 ml-[280px] p-8 overflow-y-auto">
         <div className="max-w-6xl mx-auto">
           <div className="mb-8">
             <h1 className="text-2xl font-bold text-white">Dashboard <span className="bg-clip-text text-transparent bg-gradient-to-r from-purple-400 to-pink-400">Penasehat Akademik</span></h1>
@@ -774,7 +813,22 @@ export default function AdvisorDashboard() {
               </button>
             </div>
             
-            <form onSubmit={handleUpdateProfile} className="p-6 space-y-4 overflow-y-auto w-full">
+            <form onSubmit={handleUpdateProfile} className="p-6 space-y-4 max-h-[70vh] overflow-y-auto">
+              <div>
+                <label className="block text-xs font-medium text-slate-400 mb-1">Upload Foto Profil (Opsional)</label>
+                <input 
+                  type="file" accept="image/*"
+                  onChange={e => {
+                    const file = e.target.files?.[0];
+                    if (file) {
+                      const reader = new FileReader();
+                      reader.onload = (ev) => setProfileForm({...profileForm, profile_picture: ev.target?.result as string});
+                      reader.readAsDataURL(file);
+                    }
+                  }}
+                  className="w-full bg-[#0f172a] border border-[#334155] rounded-xl px-4 py-2 text-sm text-white focus:outline-none file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-500/20 file:text-blue-400 hover:file:bg-blue-500/30"
+                />
+              </div>
               <div>
                 <label className="block text-xs font-medium text-slate-400 mb-1">Username NIP</label>
                 <input 

@@ -4,7 +4,7 @@ import React, { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { 
   Users, AlertTriangle, Settings, LogOut, ChevronRight, Activity, Database,
-  Bell, Shield, Server, Eye, Search, X, Trash
+  Bell, Shield, Server, Eye, Search, X, Trash, User, Edit2
 } from 'lucide-react';
 import { 
   PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, 
@@ -95,12 +95,18 @@ export default function AdminDashboard() {
 
   const authHeaders = useCallback(() => ({ Authorization: `Bearer ${getToken()}` }), []);
 
-  // Admin Note State
   const [showAdminNoteModal, setShowAdminNoteModal] = useState(false);
   const [adminNoteForm, setAdminNoteForm] = useState({ advisor_id: '', type: 'Peringatan', status: 'Warning', notes: '' });
   const [advisorsList, setAdvisorsList] = useState<any[]>([]);
   const [submittingAdminNote, setSubmittingAdminNote] = useState(false);
   const [sentAdminNotes, setSentAdminNotes] = useState<any[]>([]);
+
+  // Profile Update State
+  const [showProfileModal, setShowProfileModal] = useState(false);
+  const [profileForm, setProfileForm] = useState({ username: '', password: '', email: '', profile_picture: '' });
+  const [submittingProfile, setSubmittingProfile] = useState(false);
+  const [profilePictureUrl, setProfilePictureUrl] = useState<string | null>(null);
+  const [adminName, setAdminName] = useState<string>('Administrator');
 
   const fetchSentAdminNotes = useCallback(async () => {
     try {
@@ -163,6 +169,12 @@ export default function AdminDashboard() {
       }
     };
     init();
+    
+    const cachedPic = localStorage.getItem('profile_picture');
+    if (cachedPic) setProfilePictureUrl(cachedPic);
+    
+    const nameMatch = document.cookie.match(/(^| )name=([^;]+)/);
+    if(nameMatch) setAdminName(decodeURIComponent(nameMatch[2]));
   }, [router, authHeaders]);
 
   const applyFilters = useCallback(async (eOrPage?: any) => {
@@ -260,6 +272,29 @@ export default function AdminDashboard() {
     } catch(e) { console.error(e); }
   };
 
+  const handleUpdateProfile = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSubmittingProfile(true);
+    try {
+      if (profileForm.profile_picture) {
+         await fetch(`${API_URL}/auth/profile-picture`, {
+           method: 'PUT',
+           headers: { 'Content-Type': 'application/json', ...authHeaders() },
+           body: JSON.stringify({ profile_picture: profileForm.profile_picture })
+         });
+         setProfilePictureUrl(profileForm.profile_picture);
+         localStorage.setItem('profile_picture', profileForm.profile_picture);
+      }
+      alert("Profil berhasil diperbarui!");
+      setShowProfileModal(false);
+    } catch (err) {
+      console.error(err);
+      alert("Gagal memperbarui profil.");
+    } finally {
+      setSubmittingProfile(false);
+    }
+  };
+
   const handleLogout = () => {
     document.cookie = 'token=; path=/; max-age=0';
     document.cookie = 'role=; path=/; max-age=0';
@@ -284,17 +319,32 @@ export default function AdminDashboard() {
     <div className="flex min-h-screen font-sans bg-[#0b1121] text-slate-300">
       
       {/* ── Sidebar ─────────────────────────────────────────────────── */}
+      {/* ── Sidebar ─────────────────────────────────────────────────── */}
       <aside className="w-[260px] bg-[#111827] flex flex-col fixed h-full z-20 border-r border-[#1f2937]">
-        <div className="p-6 pb-8">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-orange-500 flex items-center justify-center shadow-lg shadow-orange-500/20">
-              <Shield size={20} className="text-white" />
+        <div className="p-6 pb-6">
+          <div className="flex flex-col items-center justify-center text-center mb-6">
+            <div className="w-20 h-20 rounded-xl overflow-hidden bg-gradient-to-tr from-slate-700 to-slate-800 border border-slate-600 mb-3 flex items-center justify-center text-white">
+              {profilePictureUrl ? (
+                <img src={profilePictureUrl} alt="Profile" className="w-full h-full object-cover" />
+              ) : (
+                <User size={40} className="text-slate-400" />
+              )}
             </div>
             <div>
-              <p className="text-[15px] font-bold text-slate-200">AIMS <span className="text-orange-500">Admin</span></p>
-              <p className="text-xs text-slate-500 font-medium">Administrator</p>
+              <p className="text-[15px] font-bold text-slate-200">{adminName}</p>
+              <p className="text-xs text-slate-500 font-medium mt-1">Super Admin</p>
             </div>
           </div>
+          <button 
+           onClick={() => {
+             setProfileForm({ username: '', password: '', email: '', profile_picture: '' });
+             setShowProfileModal(true);
+           }}
+           className="flex items-center justify-center gap-2 w-full py-2 px-3 rounded-lg bg-red-500/10 hover:bg-red-500/20 text-red-400 text-xs font-semibold transition"
+          >
+            <Edit2 size={12} />
+            Pengaturan Profil
+          </button>
         </div>
 
         <nav className="flex-1 px-4 space-y-1.5">
@@ -321,14 +371,7 @@ export default function AdminDashboard() {
         </nav>
 
         <div className="p-4 border-t border-[#1f2937] mt-auto">
-          <div className="flex items-center gap-3 px-2 py-3">
-            <div className="w-8 h-8 rounded-full bg-orange-500 flex items-center justify-center text-white font-bold text-sm">A</div>
-            <div>
-              <p className="text-sm font-semibold text-slate-200">Admin</p>
-              <p className="text-xs text-slate-500">Super Admin</p>
-            </div>
-          </div>
-          <button onClick={handleLogout} className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-500 hover:text-slate-300 hover:bg-[#1f2937] transition mt-1">
+          <button onClick={handleLogout} className="w-full flex items-center justify-center gap-3 px-3 py-2.5 rounded-lg text-slate-400 hover:text-red-400 hover:bg-red-500/10 transition mt-1">
             <LogOut size={16} /><span className="text-sm font-medium">Keluar</span>
           </button>
         </div>
@@ -913,6 +956,48 @@ export default function AdminDashboard() {
           </div>
         </div>
       )}
+
+      {/* Profil Modal */}
+      {showProfileModal && (
+        <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-[#1e293b] rounded-2xl w-full max-w-md border border-[#334155] shadow-2xl">
+            <div className="p-5 border-b border-[#334155] flex justify-between items-center bg-[#1a2333]/80">
+              <h3 className="font-bold text-white">Pengaturan Profil & Akun</h3>
+              <button 
+                onClick={() => setShowProfileModal(false)}
+                className="text-slate-400 hover:text-white"
+              >
+                <X size={20} />
+              </button>
+            </div>
+            
+            <form onSubmit={handleUpdateProfile} className="p-6 space-y-4 max-h-[70vh] overflow-y-auto">
+              <div>
+                <label className="block text-xs font-medium text-slate-400 mb-1">Upload Foto Profil (Opsional)</label>
+                <input 
+                  type="file" accept="image/*"
+                  onChange={e => {
+                    const file = e.target.files?.[0];
+                    if (file) {
+                      const reader = new FileReader();
+                      reader.onload = (ev) => setProfileForm({...profileForm, profile_picture: ev.target?.result as string});
+                      reader.readAsDataURL(file);
+                    }
+                  }}
+                  className="w-full bg-[#0f172a] border border-[#334155] rounded-xl px-4 py-2 text-sm text-white focus:outline-none file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-500/20 file:text-blue-400 hover:file:bg-blue-500/30"
+                />
+              </div>
+              <div className="pt-4 border-t border-[#334155] flex justify-end gap-3">
+                <button type="button" onClick={() => setShowProfileModal(false)} className="px-4 py-2 text-sm font-semibold text-slate-300 hover:text-white transition">Batal</button>
+                <button type="submit" disabled={submittingProfile} className="px-4 py-2 bg-blue-600 hover:bg-blue-500 active:bg-blue-700 text-white text-sm font-semibold rounded-lg transition disabled:opacity-50">
+                  {submittingProfile ? 'Menyimpan...' : 'Simpan Profil'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }

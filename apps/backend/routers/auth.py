@@ -9,7 +9,7 @@ import bcrypt
 from pydantic import BaseModel
 
 from packages.database.connection import get_db
-from packages.database.models import User, Student, Advisor
+from packages.database.models import User, Student, Advisor, ProdiAdmin
 
 # Hardcoded for Dev phase 1
 SECRET_KEY = "aims-secret-super-key"
@@ -26,6 +26,8 @@ class Token(BaseModel):
     role: str
     user_id: int
     name: Optional[str] = None
+    profile_picture: Optional[str] = None
+    prodi_name: Optional[str] = None
 
 def verify_password(plain_password, hashed_password):
     return bcrypt.checkpw(plain_password.encode('utf-8'), hashed_password.encode('utf-8'))
@@ -77,6 +79,7 @@ def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(), db:
     )
     
     user_name = user.username
+    prodi_name = None
     if user.role == "STUDENT":
         student = db.query(Student).filter(Student.user_id == user.id).first()
         if student:
@@ -85,10 +88,23 @@ def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(), db:
         advisor = db.query(Advisor).filter(Advisor.user_id == user.id).first()
         if advisor:
             user_name = advisor.nama
+    elif user.role == "PRODI":
+        prodi_admin = db.query(ProdiAdmin).filter(ProdiAdmin.user_id == user.id).first()
+        if prodi_admin:
+            user_name = prodi_admin.nama
+            prodi_name = prodi_admin.prodi_name
     elif user.role == "ADMIN":
         user_name = "Administrator"
 
-    return {"access_token": access_token, "token_type": "bearer", "role": user.role, "user_id": user.id, "name": user_name}
+    return {
+        "access_token": access_token, 
+        "token_type": "bearer", 
+        "role": user.role, 
+        "user_id": user.id, 
+        "name": user_name,
+        "profile_picture": user.profile_picture,
+        "prodi_name": prodi_name
+    }
 
 async def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
     credentials_exception = HTTPException(
@@ -107,3 +123,16 @@ async def get_current_user(token: str = Depends(oauth2_scheme), db: Session = De
     if user is None:
         raise credentials_exception
     return user
+
+class ProfilePictureUpdate(BaseModel):
+    profile_picture: str
+
+@router.put("/profile-picture")
+def update_profile_picture(payload: ProfilePictureUpdate, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    # Simple base64 string validation (can be up to ~2-5MB)
+    if not payload.profile_picture.startswith("data:image"):
+        raise HTTPException(status_code=400, detail="Invalid image format. Must be base64 data URI.")
+    
+    current_user.profile_picture = payload.profile_picture
+    db.commit()
+    return {"status": "success", "message": "Profile picture updated"}

@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { BookOpen, TrendingUp, Award, Calendar, Bell, LogOut, ChevronRight, AlertTriangle, CheckCircle, MessageSquare, Edit2, Trash } from 'lucide-react';
+import { BookOpen, TrendingUp, Award, Calendar, Bell, LogOut, ChevronRight, AlertTriangle, CheckCircle, MessageSquare, Edit2, Trash, User } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
@@ -43,8 +43,9 @@ export default function StudentDashboard() {
 
   // Profile Edit State
   const [showProfileModal, setShowProfileModal] = useState(false);
-  const [profileForm, setProfileForm] = useState({ username: '', password: '', email: '', phone_number_wa: '', telegram_username: '' });
+  const [profileForm, setProfileForm] = useState({ username: '', password: '', email: '', phone_number_wa: '', telegram_username: '', profile_picture: '' });
   const [submittingProfile, setSubmittingProfile] = useState(false);
+  const [profilePictureUrl, setProfilePictureUrl] = useState<string | null>(null);
 
   useEffect(() => {
     const nim = getCookie('nim') || '2021401001';
@@ -85,6 +86,8 @@ export default function StudentDashboard() {
       }
     };
     fetchData();
+    const cachedPic = localStorage.getItem('profile_picture');
+    if (cachedPic) setProfilePictureUrl(cachedPic);
   }, []);
 
   const handleLogout = () => {
@@ -108,7 +111,7 @@ export default function StudentDashboard() {
         const body = await res.json();
         alert(body.detail || 'Gagal menyembunyikan pesan');
       }
-    } catch(e) { console.error(e); }
+    } catch (e) { console.error(e); }
   };
 
   const getStatusColor = (status: string) => {
@@ -119,7 +122,7 @@ export default function StudentDashboard() {
 
   const groupedSemesters = React.useMemo(() => {
     if (!transcript || transcript.length === 0) return [];
-    
+
     const grouped = transcript.reduce((acc, grade) => {
       const sem = grade.semester || 0;
       if (!acc[sem]) acc[sem] = { semester: sem, subjects: [], totalSks: 0, totalBobot: 0 };
@@ -130,18 +133,18 @@ export default function StudentDashboard() {
     }, {} as Record<number, any>);
 
     const sortedSems = Object.values(grouped).sort((a: any, b: any) => a.semester - b.semester);
-    
+
     let cumulativeSks = 0;
     let cumulativeBobot = 0;
 
     return sortedSems.map((g: any, index: number) => {
       cumulativeSks += g.totalSks;
       cumulativeBobot += g.totalBobot;
-      
+
       const ips = g.totalSks > 0 ? (g.totalBobot / g.totalSks) : 0;
       const ipk = cumulativeSks > 0 ? (cumulativeBobot / cumulativeSks) : 0;
       const status = ips < 2.0 ? 'Warning' : 'Aman';
-      
+
       return {
         id: g.semester,
         semesterName: `T.A ${g.semester}`,
@@ -183,6 +186,15 @@ export default function StudentDashboard() {
         if (student) {
           setStudent({ ...student, email: profileForm.email || student.email });
         }
+        if (profileForm.profile_picture) {
+          await fetch(`${API_URL}/auth/profile-picture`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+            body: JSON.stringify({ profile_picture: profileForm.profile_picture })
+          });
+          setProfilePictureUrl(profileForm.profile_picture);
+          localStorage.setItem('profile_picture', profileForm.profile_picture);
+        }
       } else {
         const d = await res.json();
         alert(d.detail || "Gagal memperbarui profil.");
@@ -205,13 +217,17 @@ export default function StudentDashboard() {
       {/* Sidebar */}
       <aside className="w-64 glass-sidebar p-6 flex flex-col fixed h-full z-20">
         <div className="mb-8">
-          <div className="flex items-center gap-3 mb-1">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-blue-500 to-purple-600 flex items-center justify-center text-white font-bold text-lg">
-              {student?.nama?.charAt(0) || 'M'}
+          <div className="flex flex-col items-center justify-center text-center mb-1">
+            <div className="w-20 h-20 rounded-xl overflow-hidden bg-gradient-to-tr from-slate-700 to-slate-800 border border-slate-600 mb-3 flex items-center justify-center text-white">
+              {profilePictureUrl ? (
+                <img src={profilePictureUrl} alt="Profile" className="w-full h-full object-cover" />
+              ) : (
+                <User size={40} className="text-slate-400" />
+              )}
             </div>
             <div>
               <p className="text-sm font-semibold text-white leading-tight">{student?.nama || 'Mahasiswa'}</p>
-              <p className="text-xs text-slate-400">{student?.nim}</p>
+              <p className="text-xs text-slate-400 mt-1">{student?.nim}</p>
             </div>
           </div>
           {latestRecord && (
@@ -219,18 +235,19 @@ export default function StudentDashboard() {
               {latestRecord.status === 'Aman' ? '✓ Status Aman' : latestRecord.status === 'Warning' ? '⚠ Perlu Perhatian' : '⛔ Risiko Tinggi'}
             </span>
           )}
-          <button 
-           onClick={() => {
-             setProfileForm({ 
-               username: student?.nim || '', 
-               password: '', 
-               email: student?.email || '', 
-               phone_number_wa: (student as any)?.phone_number_wa || '', 
-               telegram_username: (student as any)?.telegram_username || '' 
-             });
-             setShowProfileModal(true);
-           }}
-           className="mt-4 flex items-center justify-center gap-2 w-full py-1.5 px-3 rounded-lg bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 text-xs font-semibold transition"
+          <button
+            onClick={() => {
+              setProfileForm({
+                username: student?.nim || '',
+                password: '',
+                email: student?.email || '',
+                phone_number_wa: (student as any)?.phone_number_wa || '',
+                telegram_username: (student as any)?.telegram_username || '',
+                profile_picture: ''
+              });
+              setShowProfileModal(true);
+            }}
+            className="mt-4 flex items-center justify-center gap-2 w-full py-1.5 px-3 rounded-lg bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 text-xs font-semibold transition"
           >
             <Edit2 size={12} />
             Pengaturan Profil
@@ -270,7 +287,7 @@ export default function StudentDashboard() {
             <h1 className="text-2xl font-bold text-white">
               {activeTab === 'Dashboard' ? 'Selamat Datang, ' : activeTab}
               {activeTab === 'Dashboard' && <span className="bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-purple-400">{student?.nama?.split(' ')[0] || '...'}</span>}
-              {activeTab === 'Dashboard' && ' 👋'}
+              {activeTab === 'Dashboard' && ''}
             </h1>
             <p className="text-slate-400 text-sm mt-1">{student?.prodi} · Angkatan {student?.angkatan} · Semester {student?.semester}</p>
           </div>
@@ -287,9 +304,9 @@ export default function StudentDashboard() {
                 ].map(({ label, value, icon: Icon, color, sub }) => (
                   <div key={label} className="glass-panel p-5">
                     <div className={`w-10 h-10 rounded-xl flex items-center justify-center mb-3 ${color === 'blue' ? 'bg-blue-500/20 text-blue-400' :
-                        color === 'purple' ? 'bg-purple-500/20 text-purple-400' :
-                          color === 'green' ? 'bg-green-500/20 text-green-400' :
-                            'bg-yellow-500/20 text-yellow-400'}`}>
+                      color === 'purple' ? 'bg-purple-500/20 text-purple-400' :
+                        color === 'green' ? 'bg-green-500/20 text-green-400' :
+                          'bg-yellow-500/20 text-yellow-400'}`}>
                       <Icon size={20} />
                     </div>
                     <p className="text-slate-400 text-xs mb-1">{label}</p>
@@ -389,46 +406,46 @@ export default function StudentDashboard() {
                     {groupedSemesters.map(rec => (
                       <React.Fragment key={rec.id}>
                         <tr className={`hover:bg-slate-800/50 transition cursor-pointer ${expandedRecordId === rec.id ? 'bg-slate-800/30' : ''}`} onClick={() => setExpandedRecordId(expandedRecordId === rec.id ? null : rec.id)}>
-                        <td className="py-3 px-4 text-white font-medium">{rec.semesterName}</td>
-                        <td className="py-3 px-4">{rec.sks}</td>
-                        <td className="py-3 px-4">{rec.ips?.toFixed(2)}</td>
-                        <td className="py-3 px-4 font-semibold text-white">{rec.ipk?.toFixed(2)}</td>
-                        <td className="py-3 px-4">
-                          <span className={`inline-flex px-2.5 py-0.5 rounded-full text-xs font-medium border ${getStatusColor(rec.status)}`}>
-                            {rec.status}
-                          </span>
-                        </td>
-                        <td className="py-3 px-4 text-right">
-                          <button onClick={() => setExpandedRecordId(expandedRecordId === rec.id ? null : rec.id)} className="text-slate-500 hover:text-blue-400 font-semibold transition bg-slate-800/80 px-3 py-1 rounded-md border border-white/10 hover:border-blue-500/30">
-                            {expandedRecordId === rec.id ? 'Tutup' : 'Detail'}
-                          </button>
-                        </td>
-                      </tr>
-                      {expandedRecordId === rec.id && (
-                        <tr className="bg-slate-900/80">
-                          <td colSpan={6} className="p-0 border-b border-white/5">
-                            <div className="bg-slate-800/40 p-4 shadow-inner">
-                              <h4 className="text-white font-semibold text-sm mb-3 px-1 border-b border-white/10 pb-2">Rincian Mata Kuliah & Nilai Kelulusan</h4>
-                              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                                {rec.subjects.length > 0 ? rec.subjects.map((mk: any) => (
-                                  <div key={mk.id} className="flex justify-between items-center bg-slate-800/80 p-3 rounded-lg border border-white/5 hover:border-blue-500/20 transition group">
-                                    <div className="w-full truncate pr-2">
-                                      <p className="text-slate-200 text-xs font-semibold truncate" title={mk.course?.nama}>{mk.course?.nama}</p>
-                                      <p className="text-slate-400 text-[10px] mt-1">SKS: {mk.course?.sks} · T.A: {mk.semester}</p>
-                                    </div>
-                                    <div className="flex flex-col items-end justify-center pl-2 border-l border-white/10">
-                                      <p className={`font-bold text-sm ${['A','A-'].includes(mk.grade) ? 'text-green-400' : ['B+','B','B-'].includes(mk.grade) ? 'text-blue-400' : ['C+','C'].includes(mk.grade) ? 'text-yellow-400' : 'text-red-400'}`}>{mk.grade || '-'}</p>
-                                    </div>
-                                  </div>
-                                )) : (
-                                  <div className="col-span-full text-center py-4 text-xs text-slate-500 py-6 border border-dashed border-white/10 rounded-lg">Transkrip mata kuliah belum tersinkronisasi.</div>
-                                )}
-                              </div>
-                            </div>
+                          <td className="py-3 px-4 text-white font-medium">{rec.semesterName}</td>
+                          <td className="py-3 px-4">{rec.sks}</td>
+                          <td className="py-3 px-4">{rec.ips?.toFixed(2)}</td>
+                          <td className="py-3 px-4 font-semibold text-white">{rec.ipk?.toFixed(2)}</td>
+                          <td className="py-3 px-4">
+                            <span className={`inline-flex px-2.5 py-0.5 rounded-full text-xs font-medium border ${getStatusColor(rec.status)}`}>
+                              {rec.status}
+                            </span>
+                          </td>
+                          <td className="py-3 px-4 text-right">
+                            <button onClick={() => setExpandedRecordId(expandedRecordId === rec.id ? null : rec.id)} className="text-slate-500 hover:text-blue-400 font-semibold transition bg-slate-800/80 px-3 py-1 rounded-md border border-white/10 hover:border-blue-500/30">
+                              {expandedRecordId === rec.id ? 'Tutup' : 'Detail'}
+                            </button>
                           </td>
                         </tr>
-                      )}
-                    </React.Fragment>
+                        {expandedRecordId === rec.id && (
+                          <tr className="bg-slate-900/80">
+                            <td colSpan={6} className="p-0 border-b border-white/5">
+                              <div className="bg-slate-800/40 p-4 shadow-inner">
+                                <h4 className="text-white font-semibold text-sm mb-3 px-1 border-b border-white/10 pb-2">Rincian Mata Kuliah & Nilai Kelulusan</h4>
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                                  {rec.subjects.length > 0 ? rec.subjects.map((mk: any) => (
+                                    <div key={mk.id} className="flex justify-between items-center bg-slate-800/80 p-3 rounded-lg border border-white/5 hover:border-blue-500/20 transition group">
+                                      <div className="w-full truncate pr-2">
+                                        <p className="text-slate-200 text-xs font-semibold truncate" title={mk.course?.nama}>{mk.course?.nama}</p>
+                                        <p className="text-slate-400 text-[10px] mt-1">SKS: {mk.course?.sks} · T.A: {mk.semester}</p>
+                                      </div>
+                                      <div className="flex flex-col items-end justify-center pl-2 border-l border-white/10">
+                                        <p className={`font-bold text-sm ${['A', 'A-'].includes(mk.grade) ? 'text-green-400' : ['B+', 'B', 'B-'].includes(mk.grade) ? 'text-blue-400' : ['C+', 'C'].includes(mk.grade) ? 'text-yellow-400' : 'text-red-400'}`}>{mk.grade || '-'}</p>
+                                      </div>
+                                    </div>
+                                  )) : (
+                                    <div className="col-span-full text-center py-4 text-xs text-slate-500 py-6 border border-dashed border-white/10 rounded-lg">Transkrip mata kuliah belum tersinkronisasi.</div>
+                                  )}
+                                </div>
+                              </div>
+                            </td>
+                          </tr>
+                        )}
+                      </React.Fragment>
                     ))}
                   </tbody>
                 </table>
@@ -556,7 +573,7 @@ export default function StudentDashboard() {
                         "{log.notes}"
                       </div>
                     </div>
-                    
+
                     {log.status === 'Selesai' && (
                       <button
                         onClick={() => hideConsultationData(log.id)}
@@ -581,21 +598,36 @@ export default function StudentDashboard() {
           <div className="bg-slate-800 rounded-2xl w-full max-w-md border border-white/10 shadow-2xl">
             <div className="p-5 border-b border-white/5 flex justify-between items-center bg-slate-800/80">
               <h3 className="font-bold text-white">Pengaturan Profil & Akun</h3>
-              <button 
+              <button
                 onClick={() => setShowProfileModal(false)}
                 className="text-slate-400 hover:text-white"
               >
                 &times;
               </button>
             </div>
-            
+
             <form onSubmit={handleUpdateProfile} className="p-6 space-y-4 max-h-[70vh] overflow-y-auto">
               <div>
+                <label className="block text-xs font-medium text-slate-400 mb-1">Upload Foto Profil (Opsional)</label>
+                <input
+                  type="file" accept="image/*"
+                  onChange={e => {
+                    const file = e.target.files?.[0];
+                    if (file) {
+                      const reader = new FileReader();
+                      reader.onload = (ev) => setProfileForm({ ...profileForm, profile_picture: ev.target?.result as string });
+                      reader.readAsDataURL(file);
+                    }
+                  }}
+                  className="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-2 text-sm text-white focus:outline-none file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-500/20 file:text-blue-400 hover:file:bg-blue-500/30"
+                />
+              </div>
+              <div>
                 <label className="block text-xs font-medium text-slate-400 mb-1">Username Login</label>
-                <input 
+                <input
                   type="text"
                   value={profileForm.username}
-                  onChange={e => setProfileForm({...profileForm, username: e.target.value})}
+                  onChange={e => setProfileForm({ ...profileForm, username: e.target.value })}
                   className="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-blue-500 disabled:opacity-50"
                 />
                 <p className="text-[10px] text-slate-500 mt-1">Gunakan NIM Anda jika ragu. Berubahnya username bisa membuat Anda gagal login dengan NIM.</p>
@@ -603,10 +635,10 @@ export default function StudentDashboard() {
 
               <div>
                 <label className="block text-xs font-medium text-slate-400 mb-1">Kata Sandi Baru</label>
-                <input 
+                <input
                   type="password"
                   value={profileForm.password}
-                  onChange={e => setProfileForm({...profileForm, password: e.target.value})}
+                  onChange={e => setProfileForm({ ...profileForm, password: e.target.value })}
                   placeholder="Isi hanya jika ingin mengganti sandi..."
                   className="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-blue-500"
                 />
@@ -614,20 +646,20 @@ export default function StudentDashboard() {
 
               <div>
                 <label className="block text-xs font-medium text-slate-400 mb-1">Email Pribadi</label>
-                <input 
+                <input
                   type="email"
                   value={profileForm.email}
-                  onChange={e => setProfileForm({...profileForm, email: e.target.value})}
+                  onChange={e => setProfileForm({ ...profileForm, email: e.target.value })}
                   className="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-blue-500"
                 />
               </div>
 
               <div>
                 <label className="block text-xs font-medium text-slate-400 mb-1">Nomor WhatsApp Aktif (+62)</label>
-                <input 
+                <input
                   type="text"
                   value={profileForm.phone_number_wa}
-                  onChange={e => setProfileForm({...profileForm, phone_number_wa: e.target.value})}
+                  onChange={e => setProfileForm({ ...profileForm, phone_number_wa: e.target.value })}
                   placeholder="+628123456789"
                   className="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-green-500"
                 />
@@ -637,27 +669,27 @@ export default function StudentDashboard() {
               <div>
                 <label className="block text-xs font-medium text-slate-400 mb-1">Username Telegram (Opsional)</label>
                 <div className="flex">
-                   <div className="bg-slate-900 border border-r-0 border-slate-700 rounded-l-xl px-3 py-3 text-sm text-slate-500">@</div>
-                   <input 
-                     type="text"
-                     value={profileForm.telegram_username}
-                     onChange={e => setProfileForm({...profileForm, telegram_username: e.target.value})}
-                     placeholder="mahasiswa_fib"
-                     className="w-full bg-slate-900 border border-slate-700 rounded-r-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-blue-500"
-                   />
+                  <div className="bg-slate-900 border border-r-0 border-slate-700 rounded-l-xl px-3 py-3 text-sm text-slate-500">@</div>
+                  <input
+                    type="text"
+                    value={profileForm.telegram_username}
+                    onChange={e => setProfileForm({ ...profileForm, telegram_username: e.target.value })}
+                    placeholder="mahasiswa_fib"
+                    className="w-full bg-slate-900 border border-slate-700 rounded-r-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-blue-500"
+                  />
                 </div>
               </div>
 
               <div className="pt-4 flex justify-end gap-3 mt-4 border-t border-white/5 pt-4">
-                <button 
-                  type="button" 
+                <button
+                  type="button"
                   onClick={() => setShowProfileModal(false)}
                   className="px-5 py-2.5 text-sm font-medium text-slate-300 hover:text-white"
                 >
                   Batal
                 </button>
-                <button 
-                  type="submit" 
+                <button
+                  type="submit"
                   disabled={submittingProfile}
                   className="px-5 py-2.5 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 text-white text-sm font-bold rounded-xl shadow-lg transition"
                 >

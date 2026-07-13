@@ -60,6 +60,7 @@ export default function AdminDashboard() {
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [semesterDist, setSemesterDist] = useState<ChartEntry[]>([]);
   const [statusDist, setStatusDist] = useState<ChartEntry[]>([]);
+  const [riskStatusPerProdi, setRiskStatusPerProdi] = useState<any[]>([]);
   const [allStudents, setAllStudents] = useState<StudentRecord[]>([]);
   const [prodis, setProdis] = useState<string[]>([]);
   const [angkatans, setAngkatans] = useState<number[]>([]);
@@ -124,10 +125,11 @@ export default function AdminDashboard() {
 
     const init = async () => {
       try {
-        const [statsRes, semRes, statusRes, prodisRes, angkatansRes, countRes] = await Promise.all([
+        const [statsRes, semRes, statusRes, riskRes, prodisRes, angkatansRes, countRes] = await Promise.all([
           fetch(`${API_URL}/admin/overview`, { headers: authHeaders() }),
           fetch(`${API_URL}/admin/stats/semester`, { headers: authHeaders() }),
           fetch(`${API_URL}/admin/stats/status`, { headers: authHeaders() }),
+          fetch(`${API_URL}/admin/stats/risk-per-prodi`, { headers: authHeaders() }),
           fetch(`${API_URL}/admin/students/prodi-list`, { headers: authHeaders() }),
           fetch(`${API_URL}/admin/students/angkatan-list`, { headers: authHeaders() }),
           fetch(`${API_URL}/students/?limit=1`, { headers: authHeaders() }),
@@ -138,6 +140,7 @@ export default function AdminDashboard() {
         setStats(await statsRes.json());
         setSemesterDist(await semRes.json());
         setStatusDist(await statusRes.json());
+        setRiskStatusPerProdi(await riskRes.json());
         setProdis(await prodisRes.json());
         setAngkatans(await angkatansRes.json());
 
@@ -471,6 +474,25 @@ export default function AdminDashboard() {
                       </BarChart>
                     </ResponsiveContainer>
                   </div>
+                </div>
+              </div>
+
+              {/* Stacked Bar: Risk per Prodi */}
+              <div className="bg-[#1e293b] rounded-xl p-6 border border-[#334155]">
+                <h3 className="text-sm font-semibold text-white mb-4">Pemetaan Status Risiko per Program Studi</h3>
+                <div className="h-[300px]">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={riskStatusPerProdi} margin={{ top: 10, right: 10, left: -20, bottom: 25 }}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#334155" vertical={false} />
+                      <XAxis dataKey="prodi" stroke="#64748b" fontSize={10} tickLine={false} axisLine={false} angle={-35} textAnchor="end" height={50} />
+                      <YAxis stroke="#64748b" fontSize={11} tickLine={false} axisLine={false} />
+                      <RechartsTooltip cursor={{ fill: 'rgba(255,255,255,0.03)' }} contentStyle={{ backgroundColor: '#1e293b', borderColor: '#334155', borderRadius: '8px', color: '#fff' }} itemStyle={{ color: '#fff' }} />
+                      <Legend wrapperStyle={{ fontSize: '11px', paddingTop: '10px' }} />
+                      <Bar dataKey="Merah" stackId="a" fill="#ef4444" radius={[0, 0, 4, 4]} barSize={32} />
+                      <Bar dataKey="Kuning" stackId="a" fill="#eab308" />
+                      <Bar dataKey="Hijau" stackId="a" fill="#22c55e" radius={[4, 4, 0, 0]} />
+                    </BarChart>
+                  </ResponsiveContainer>
                 </div>
               </div>
 

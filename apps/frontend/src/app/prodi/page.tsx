@@ -115,13 +115,13 @@ export default function ProdiDashboard() {
 
   const authHeaders = useCallback(() => ({ Authorization: `Bearer ${getToken()}` }), []);
 
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     try {
       const [ovRes, stRes, advRes, semRes, statRes, angkatanRes] = await Promise.all([
         fetch(`${API_URL}/prodi/overview`, { headers: authHeaders() }),
         fetch(`${API_URL}/prodi/students?limit=100`, { headers: authHeaders() }),
         fetch(`${API_URL}/prodi/advisors`, { headers: authHeaders() }),
-        fetch(`${API_URL}/prodi/stats/angkatan`, { headers: authHeaders() }),
+        fetch(`${API_URL}/prodi/stats/semester`, { headers: authHeaders() }),
         fetch(`${API_URL}/prodi/stats/status`, { headers: authHeaders() }),
         fetch(`${API_URL}/prodi/stats/angkatan`, { headers: authHeaders() })
       ]);
@@ -145,15 +145,17 @@ export default function ProdiDashboard() {
       }
 
       // Mock setting remaining graphs
-      setSemesterDist([]);
+      setSemesterDist(await semRes.json());
       setStatusDist(await statRes.json());
-      setAngkatans(await angkatanRes.json());
+      
+      const angkatanData = await angkatanRes.json();
+      setAngkatans(angkatanData.map((d: any) => Number(d.name)).sort((a: number, b: number) => b - a));
     } catch (e) {
-      console.error(e);
+      console.warn("Tunggu sebentar, menghubungkan ke server...", e);
     } finally {
       setLoading(false);
     }
-  };
+  }, [authHeaders, router]);
 
   const handleUpdateProfile = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -184,9 +186,10 @@ export default function ProdiDashboard() {
     setTranscriptLoading(true);
     try {
       const res = await fetch(`${API_URL}/students/${student.nim}/transcript`, { headers: authHeaders() });
-      setTranscriptData(await res.json());
+      const data = await res.json();
+      setTranscriptData(Array.isArray(data) ? data : []);
     } catch (e) {
-      console.error(e);
+      console.warn("Gagal membuka transkrip", e);
     } finally {
       setTranscriptLoading(false);
     }
@@ -197,26 +200,75 @@ export default function ProdiDashboard() {
     setRiskModalOpen(true);
     setRiskLoading(true);
     try {
-      const res = await fetch(`${API_URL}/admin/risk-students?zone=${zone}`, { headers: authHeaders() }); // Can fallback to admin or prodi
+      const res = await fetch(`${API_URL}/prodi/risk-students?zone=${zone}`, { headers: authHeaders() });
       if (res.ok) {
         setRiskStudents(await res.json());
       } else {
         setRiskStudents([]);
       }
     } catch (e) {
-      console.error(e);
+      console.warn("Gagal membuka data zona risiko", e);
     } finally {
       setRiskLoading(false);
     }
   };
 
+  const fetchSentNotes = useCallback(async () => {
+    try {
+      const res = await fetch(`${API_URL}/prodi/advisor-notes/sent`, { headers: authHeaders() });
+      if (res.ok) {
+        const data = await res.json();
+        setSentAdminNotes(Array.isArray(data) ? data : []);
+      }
+    } catch (e) {
+      console.warn("Gagal mengambil catatan (Mungkin server sibuk)...", e);
+    }
+  }, [authHeaders]);
+
   const handleCreateAdminNote = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Implementation specific to kaprodi can go here or use admin endpoint if allowed
-    setSubmittingAdminNote(false);
+    setSubmittingAdminNote(true);
+    try {
+      const r = await fetch(`${API_URL}/prodi/advisor-notes`, {
+        method: 'POST',
+        headers: authHeaders(),
+        body: JSON.stringify({
+          advisor_id: parseInt(adminNoteForm.advisor_id, 10),
+          type: adminNoteForm.type,
+          status: adminNoteForm.status,
+          notes: adminNoteForm.notes
+        })
+      });
+      if (r.ok) {
+        alert("Pesan berhasil dikirim ke PA!");
+        setAdminNoteForm(prev => ({ ...prev, notes: '' }));
+        setShowAdminNoteModal(false);
+        fetchSentNotes();
+      } else {
+        const error = await r.json();
+        alert(error.detail || "Gagal mengirim catatan");
+      }
+    } catch (e) {
+      alert("Terjadi kesalahan jaringan");
+    } finally {
+      setSubmittingAdminNote(false);
+    }
   };
+
   const handleDeleteSentNote = async (id: number) => {
-     // delete logic
+    if (!confirm("Hapus catatan ini dari riwayat?")) return;
+    try {
+      const r = await fetch(`${API_URL}/prodi/advisor-notes/${id}`, {
+        method: 'DELETE',
+        headers: authHeaders()
+      });
+      if (r.ok) {
+        alert("Catatan dihapus");
+        fetchSentNotes();
+      }
+    } catch (e) {
+       alert("Gagal menghapus");
+    }
   };
 
   useEffect(() => {
@@ -234,7 +286,8 @@ export default function ProdiDashboard() {
     if (prodiMatch) setProdiName(decodeURIComponent(prodiMatch[2]));
 
     fetchData();
-  }, [router, authHeaders]);
+    fetchSentNotes();
+  }, [router, authHeaders, fetchSentNotes, fetchData]);
 
   const applyFilters = useCallback(async (eOrPage?: any) => {
     const page = typeof eOrPage === 'number' ? eOrPage : 1;
@@ -252,6 +305,8 @@ export default function ProdiDashboard() {
       setStudents(st);
       setAllStudents(st);
       setCurrentPage(page);
+    } catch (e) {
+      console.warn("Gagal menerapkan filter...", e);
     } finally {
       setFilterLoading(false);
     }
@@ -350,9 +405,9 @@ export default function ProdiDashboard() {
           <div className="flex items-start justify-between mb-8">
             <div>
               <h1 className="text-2xl font-bold text-white">
-                Dashboard <span className="text-orange-500">Administrator</span>
+                Dashboard <span className="text-orange-500">Program Studi</span>
               </h1>
-              <p className="text-[#64748b] text-sm mt-1">Monitoring & Manajemen Sistem AIMS</p>
+              <p className="text-[#64748b] text-sm mt-1">Manajemen Akademik Tingkat Program Studi</p>
             </div>
             <div className="flex items-center gap-3">
               <button 
@@ -401,16 +456,33 @@ export default function ProdiDashboard() {
                 <div className="bg-[#1e293b] rounded-xl p-6 border border-[#334155]">
                   <h3 className="text-sm font-semibold text-white mb-4">Status Mahasiswa</h3>
                   <div className="h-[200px]">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <PieChart>
-                        <Pie data={statusDist} cx="50%" cy="50%" innerRadius={55} outerRadius={80} paddingAngle={2} dataKey="value" stroke="none">
-                          {statusDist.map((entry) => (
-                            <Cell key={entry.name} fill={PIE_COLORS[entry.name] ?? '#64748b'} />
-                          ))}
-                        </Pie>
-                        <RechartsTooltip contentStyle={{ backgroundColor: '#1e293b', borderColor: '#334155', borderRadius: '8px', color: '#fff' }} />
-                      </PieChart>
-                    </ResponsiveContainer>
+                    {statusDist.length > 0 ? (
+                      <ResponsiveContainer width="100%" height="100%">
+                        <PieChart>
+                          <Pie 
+                            data={statusDist} 
+                            cx="50%" 
+                            cy="50%" 
+                            innerRadius={55} 
+                            outerRadius={80} 
+                            paddingAngle={2} 
+                            dataKey="value" 
+                            nameKey="name" 
+                            stroke="none"
+                            isAnimationActive={false}
+                          >
+                            {statusDist.map((entry) => (
+                              <Cell key={`cell-${entry.name}`} fill={PIE_COLORS[entry.name] ?? '#64748b'} />
+                            ))}
+                          </Pie>
+                          <RechartsTooltip contentStyle={{ backgroundColor: '#1e293b', borderColor: '#334155', borderRadius: '8px', color: '#fff' }} itemStyle={{ color: '#fff' }} />
+                        </PieChart>
+                      </ResponsiveContainer>
+                    ) : (
+                      <div className="w-full h-full flex flex-col justify-center items-center">
+                        <div className="w-8 h-8 rounded-full border-2 border-slate-700 border-t-slate-500 animate-spin mb-2"></div>
+                      </div>
+                    )}
                   </div>
                   <div className="flex flex-wrap gap-x-4 gap-y-1.5 mt-2">
                     {statusDist.map(s => (
@@ -827,7 +899,7 @@ export default function ProdiDashboard() {
                     </span>
                     <span className="text-xs text-slate-500 font-medium">{note.date}</span>
                   </div>
-                  <p className="text-sm text-slate-300 border-l-2 border-slate-700 pl-3 italic">"{note.notes}"</p>
+                  <p className="text-sm text-slate-300 border-l-2 border-slate-700 pl-3 italic">&quot;{note.notes}&quot;</p>
                 </div>
                 <button
                   onClick={() => handleDeleteSentNote(note.id)}

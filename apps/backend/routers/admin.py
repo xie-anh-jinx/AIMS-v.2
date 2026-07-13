@@ -90,6 +90,46 @@ def get_status_distribution(
     ).group_by(Student.status).all()
     return [{"name": r.status, "value": r.count} for r in rows]
 
+@router.get("/stats/risk-per-prodi")
+def get_risk_status_per_prodi(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    if current_user.role != "ADMIN":
+        raise HTTPException(status_code=403, detail="Not authorized")
+
+    subq = db.query(
+        AcademicRecord.student_id,
+        func.max(AcademicRecord.semester).label("max_semester")
+    ).group_by(AcademicRecord.student_id).subquery()
+    
+    students = db.query(
+        Student.prodi,
+        AcademicRecord.ipk
+    ).join(
+        AcademicRecord,
+        Student.id == AcademicRecord.student_id
+    ).join(
+        subq,
+        (AcademicRecord.student_id == subq.c.student_id) & 
+        (AcademicRecord.semester == subq.c.max_semester)
+    ).filter(Student.status != 'Lulus').all()
+    
+    prodi_counts = {}
+    for s in students:
+        if s.prodi not in prodi_counts:
+             prodi_counts[s.prodi] = {"merah": 0, "kuning": 0, "hijau": 0}
+        ipk = getattr(s, "ipk", 0.0) or 0.0
+        if ipk < 2.0:
+            prodi_counts[s.prodi]["merah"] += 1
+        elif ipk < 2.75:
+            prodi_counts[s.prodi]["kuning"] += 1
+        else:
+            prodi_counts[s.prodi]["hijau"] += 1
+            
+    out = [{"prodi": k, "Merah": v["merah"], "Kuning": v["kuning"], "Hijau": v["hijau"]} for k, v in prodi_counts.items()]
+    return out
+
 @router.get("/students/prodi-list")
 def get_prodi_list(
     db: Session = Depends(get_db),

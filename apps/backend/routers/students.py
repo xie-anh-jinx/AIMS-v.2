@@ -34,6 +34,12 @@ def check_student_access(student: Student, current_user: User, db: Session):
         advisor = db.query(Advisor).filter(Advisor.user_id == current_user.id).first()
         if advisor and student.advisor_id == advisor.id:
             return
+    
+    elif current_user.role == "PRODI":
+        from packages.database.models import ProdiAdmin
+        prodi_admin = db.query(ProdiAdmin).filter(ProdiAdmin.user_id == current_user.id).first()
+        if prodi_admin and student.prodi == prodi_admin.prodi_name:
+            return
             
     raise HTTPException(status_code=403, detail="Tidak memiliki hak akses untuk data mahasiswa ini")
 

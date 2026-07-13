@@ -1,0 +1,585 @@
+nohup: ignoring input
+◇ injected env (5) from ../../.env // tip: ⌘ suppress logs { quiet: true }
+=== MEMULAI SINKRONISASI PA SE-FAKULTAS ILMU BUDAYA ===
+[36m2026-07-13T11:25:12.001Z [INFO ] [V3-Engine] [AIMS] Academic Connector V3 Initialized.[0m
+[1] Login Playwright untuk Fakultas Ilmu Budaya...
+[36m2026-07-13T11:25:12.013Z [INFO ] [V3-Engine] [BrowserAdapter] Booting Chrome for fib_superadmin...[0m
+[36m2026-07-13T11:25:12.188Z [INFO ] [V3-Engine] [Auth] Starting Token Interception...[0m
+[36m2026-07-13T11:25:12.188Z [INFO ] [V3-Engine] [BrowserAdapter] Navigating to Portal...[0m
+[36m2026-07-13T11:25:15.386Z [INFO ] [V3-Engine] [BrowserAdapter] Submitting login...[0m
+[36m2026-07-13T11:25:22.265Z [INFO ] [V3-Engine] [BrowserAdapter] Login Navigation Complete, extracting Tokens...[0m
+[36m2026-07-13T11:25:22.339Z [INFO ] [V3-Engine] [BrowserAdapter] Chrome Closed for fib_superadmin.[0m
+[OK] Bearer token berhasil ditangkap.
+[2] Fetching active semesters...
+[2] Ditemukan 305 semester prodi aktif se-Fakultas.
+[Progress 1/305] Scraping Sem: 3978 (ARKEOLOGI - S2)
+[Progress 2/305] Scraping Sem: 3986 (BAHASA MANDARIN DAN KEBUDAYAAN TIONGKOK)
+[Progress 3/305] Scraping Sem: 3994 (BAHASA INGGRIS - S3)
+[Progress 4/305] Scraping Sem: 3998 (Sejarah - S2)
+[Progress 5/305] Scraping Sem: 4001 (SASTRA INDONESIA - S3)
+[Progress 6/305] Scraping Sem: 4026 (KAJIAN BUDAYA - S2)
+[Progress 7/305] Scraping Sem: 4036 (PARIWISATA - S1)
+[Progress 8/305] Scraping Sem: 3848 (SASTRA INDONESIA - S1)
+[Progress 9/305] Scraping Sem: 3849 (SASTRA INGGRIS - S1)
+[Progress 10/305] Scraping Sem: 3850 (SASTRA PRANCIS - S1)
+[Progress 11/305] Scraping Sem: 3851 (SASTRA ASIA BARAT - S1)
+[Progress 12/305] Scraping Sem: 3852 (SASTRA BUGIS-MAKASSAR - S1)
+[Progress 13/305] Scraping Sem: 3853 (ARKEOLOGI - S1)
+[Progress 14/305] Scraping Sem: 3854 (ILMU SEJARAH - S1)
+[Progress 15/305] Scraping Sem: 3855 (SASTRA JEPANG - S1)
+[Progress 16/305] Scraping Sem: 3883 (ILMU LINGUISTIK - S3)
+[Progress 17/305] Scraping Sem: 3886 (LINGUISTIK - S2)
+[Progress 18/305] Scraping Sem: 3888 (BAHASA INGGRIS - S2)
+[Progress 19/305] Scraping Sem: 3897 (BAHASA INDONESIA - S2)
+[Progress 20/305] Scraping Sem: 3728 (ARKEOLOGI - S2)
+[Progress 21/305] Scraping Sem: 3736 (BAHASA MANDARIN DAN KEBUDAYAAN TIONGKOK)
+[Progress 22/305] Scraping Sem: 3744 (BAHASA INGGRIS - S3)
+[Progress 23/305] Scraping Sem: 3748 (Sejarah - S2)
+[Progress 24/305] Scraping Sem: 3751 (SASTRA INDONESIA - S3)
+[WARNING] Failed fetching Sem 3751: request to https://api.neosia.unhas.ac.id/api/admin/penasihat_akademik?filters[id_prodi_semester]=3751 failed, reason: socket hang up
+[Progress 25/305] Scraping Sem: 3776 (KAJIAN BUDAYA - S2)
+[WARNING] Failed fetching Sem 3776: [REST] Error 429: <!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+
+        <title>Too Many Requests</title>
+
+        <!-- Fonts -->
+        <link rel="dns-prefetch" href="//fonts.gstatic.com">
+        <link href="https://fonts.googleapis.com/css?family=Nunito" rel="stylesheet">
+
+        <!-- Styles -->
+        <style>
+            html, body {
+                background-color: #fff;
+                color: #636b6f;
+                font-family: 'Nunito', sans-serif;
+                font-weight: 100;
+                height: 100vh;
+                margin: 0;
+            }
+
+            .full-height {
+                height: 100vh;
+            }
+
+            .flex-center {
+                align-items: center;
+                display: flex;
+                justify-content: center;
+            }
+
+            .position-ref {
+                position: relative;
+            }
+
+            .code {
+                border-right: 2px solid;
+                font-size: 26px;
+                padding: 0 15px 0 15px;
+                text-align: center;
+            }
+
+            .message {
+                font-size: 18px;
+                text-align: center;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="flex-center position-ref full-height">
+            <div class="code">
+                429            </div>
+
+            <div class="message" style="padding: 10px;">
+                Too Many Requests            </div>
+        </div>
+    </body>
+</html>
+
+[Progress 26/305] Scraping Sem: 3786 (PARIWISATA - S1)
+[WARNING] Failed fetching Sem 3786: [REST] Error 429: <!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+
+        <title>Too Many Requests</title>
+
+        <!-- Fonts -->
+        <link rel="dns-prefetch" href="//fonts.gstatic.com">
+        <link href="https://fonts.googleapis.com/css?family=Nunito" rel="stylesheet">
+
+        <!-- Styles -->
+        <style>
+            html, body {
+                background-color: #fff;
+                color: #636b6f;
+                font-family: 'Nunito', sans-serif;
+                font-weight: 100;
+                height: 100vh;
+                margin: 0;
+            }
+
+            .full-height {
+                height: 100vh;
+            }
+
+            .flex-center {
+                align-items: center;
+                display: flex;
+                justify-content: center;
+            }
+
+            .position-ref {
+                position: relative;
+            }
+
+            .code {
+                border-right: 2px solid;
+                font-size: 26px;
+                padding: 0 15px 0 15px;
+                text-align: center;
+            }
+
+            .message {
+                font-size: 18px;
+                text-align: center;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="flex-center position-ref full-height">
+            <div class="code">
+                429            </div>
+
+            <div class="message" style="padding: 10px;">
+                Too Many Requests            </div>
+        </div>
+    </body>
+</html>
+
+[Progress 27/305] Scraping Sem: 3598 (SASTRA INDONESIA - S1)
+[WARNING] Failed fetching Sem 3598: [REST] Error 429: <!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+
+        <title>Too Many Requests</title>
+
+        <!-- Fonts -->
+        <link rel="dns-prefetch" href="//fonts.gstatic.com">
+        <link href="https://fonts.googleapis.com/css?family=Nunito" rel="stylesheet">
+
+        <!-- Styles -->
+        <style>
+            html, body {
+                background-color: #fff;
+                color: #636b6f;
+                font-family: 'Nunito', sans-serif;
+                font-weight: 100;
+                height: 100vh;
+                margin: 0;
+            }
+
+            .full-height {
+                height: 100vh;
+            }
+
+            .flex-center {
+                align-items: center;
+                display: flex;
+                justify-content: center;
+            }
+
+            .position-ref {
+                position: relative;
+            }
+
+            .code {
+                border-right: 2px solid;
+                font-size: 26px;
+                padding: 0 15px 0 15px;
+                text-align: center;
+            }
+
+            .message {
+                font-size: 18px;
+                text-align: center;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="flex-center position-ref full-height">
+            <div class="code">
+                429            </div>
+
+            <div class="message" style="padding: 10px;">
+                Too Many Requests            </div>
+        </div>
+    </body>
+</html>
+
+[Progress 28/305] Scraping Sem: 3599 (SASTRA INGGRIS - S1)
+[WARNING] Failed fetching Sem 3599: [REST] Error 429: <!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+
+        <title>Too Many Requests</title>
+
+        <!-- Fonts -->
+        <link rel="dns-prefetch" href="//fonts.gstatic.com">
+        <link href="https://fonts.googleapis.com/css?family=Nunito" rel="stylesheet">
+
+        <!-- Styles -->
+        <style>
+            html, body {
+                background-color: #fff;
+                color: #636b6f;
+                font-family: 'Nunito', sans-serif;
+                font-weight: 100;
+                height: 100vh;
+                margin: 0;
+            }
+
+            .full-height {
+                height: 100vh;
+            }
+
+            .flex-center {
+                align-items: center;
+                display: flex;
+                justify-content: center;
+            }
+
+            .position-ref {
+                position: relative;
+            }
+
+            .code {
+                border-right: 2px solid;
+                font-size: 26px;
+                padding: 0 15px 0 15px;
+                text-align: center;
+            }
+
+            .message {
+                font-size: 18px;
+                text-align: center;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="flex-center position-ref full-height">
+            <div class="code">
+                429            </div>
+
+            <div class="message" style="padding: 10px;">
+                Too Many Requests            </div>
+        </div>
+    </body>
+</html>
+
+[Progress 29/305] Scraping Sem: 3600 (SASTRA PRANCIS - S1)
+[Progress 30/305] Scraping Sem: 3601 (SASTRA ASIA BARAT - S1)
+[WARNING] Failed fetching Sem 3601: request to https://api.neosia.unhas.ac.id/api/admin/penasihat_akademik?filters[id_prodi_semester]=3601 failed, reason: 
+[Progress 31/305] Scraping Sem: 3602 (SASTRA BUGIS-MAKASSAR - S1)
+[Progress 32/305] Scraping Sem: 3603 (ARKEOLOGI - S1)
+[Progress 33/305] Scraping Sem: 3604 (ILMU SEJARAH - S1)
+[Progress 34/305] Scraping Sem: 3605 (SASTRA JEPANG - S1)
+[Progress 35/305] Scraping Sem: 3633 (ILMU LINGUISTIK - S3)
+[Progress 36/305] Scraping Sem: 3636 (LINGUISTIK - S2)
+[Progress 37/305] Scraping Sem: 3638 (BAHASA INGGRIS - S2)
+[Progress 38/305] Scraping Sem: 3647 (BAHASA INDONESIA - S2)
+[WARNING] Failed fetching Sem 3647: request to https://api.neosia.unhas.ac.id/api/admin/penasihat_akademik?filters[id_prodi_semester]=3647 failed, reason: socket hang up
+[Progress 39/305] Scraping Sem: 3392 (LINGUISTIK - S2)
+[Progress 40/305] Scraping Sem: 3394 (BAHASA INGGRIS - S2)
+[Progress 41/305] Scraping Sem: 3403 (BAHASA INDONESIA - S2)
+[Progress 42/305] Scraping Sem: 3484 (ARKEOLOGI - S2)
+[Progress 43/305] Scraping Sem: 3492 (BAHASA MANDARIN DAN KEBUDAYAAN TIONGKOK)
+[Progress 44/305] Scraping Sem: 3500 (BAHASA INGGRIS - S3)
+[Progress 45/305] Scraping Sem: 3504 (Sejarah - S2)
+[Progress 46/305] Scraping Sem: 3507 (SASTRA INDONESIA - S3)
+[Progress 47/305] Scraping Sem: 3533 (KAJIAN BUDAYA - S2)
+[Progress 48/305] Scraping Sem: 3543 (PARIWISATA - S1)
+[Progress 49/305] Scraping Sem: 3354 (SASTRA INDONESIA - S1)
+[Progress 50/305] Scraping Sem: 3355 (SASTRA INGGRIS - S1)
+[Progress 51/305] Scraping Sem: 3356 (SASTRA PRANCIS - S1)
+[Progress 52/305] Scraping Sem: 3357 (SASTRA ASIA BARAT - S1)
+[Progress 53/305] Scraping Sem: 3358 (SASTRA BUGIS-MAKASSAR - S1)
+[Progress 54/305] Scraping Sem: 3359 (ARKEOLOGI - S1)
+[Progress 55/305] Scraping Sem: 3360 (ILMU SEJARAH - S1)
+[Progress 56/305] Scraping Sem: 3361 (SASTRA JEPANG - S1)
+[Progress 57/305] Scraping Sem: 3389 (ILMU LINGUISTIK - S3)
+[Progress 58/305] Scraping Sem: 3245 (ARKEOLOGI - S2)
+[WARNING] Failed fetching Sem 3245: request to https://api.neosia.unhas.ac.id/api/admin/penasihat_akademik?filters[id_prodi_semester]=3245 failed, reason: socket hang up
+[Progress 59/305] Scraping Sem: 3253 (BAHASA MANDARIN DAN KEBUDAYAAN TIONGKOK)
+[Progress 60/305] Scraping Sem: 3261 (BAHASA INGGRIS - S3)
+[Progress 61/305] Scraping Sem: 3265 (Sejarah - S2)
+[WARNING] Failed fetching Sem 3265: request to https://api.neosia.unhas.ac.id/api/admin/penasihat_akademik?filters[id_prodi_semester]=3265 failed, reason: socket hang up
+[Progress 62/305] Scraping Sem: 3268 (SASTRA INDONESIA - S3)
+[Progress 63/305] Scraping Sem: 3294 (KAJIAN BUDAYA - S2)
+[Progress 64/305] Scraping Sem: 3304 (PARIWISATA - S1)
+[Progress 65/305] Scraping Sem: 3115 (SASTRA INDONESIA - S1)
+[WARNING] Failed fetching Sem 3115: request to https://api.neosia.unhas.ac.id/api/admin/penasihat_akademik?filters[id_prodi_semester]=3115 failed, reason: 
+[Progress 66/305] Scraping Sem: 3116 (SASTRA INGGRIS - S1)
+[Progress 67/305] Scraping Sem: 3117 (SASTRA PRANCIS - S1)
+[Progress 68/305] Scraping Sem: 3118 (SASTRA ASIA BARAT - S1)
+[Progress 69/305] Scraping Sem: 3119 (SASTRA BUGIS-MAKASSAR - S1)
+[Progress 70/305] Scraping Sem: 3120 (ARKEOLOGI - S1)
+[Progress 71/305] Scraping Sem: 3121 (ILMU SEJARAH - S1)
+[Progress 72/305] Scraping Sem: 3122 (SASTRA JEPANG - S1)
+[Progress 73/305] Scraping Sem: 3150 (ILMU LINGUISTIK - S3)
+[Progress 74/305] Scraping Sem: 3153 (LINGUISTIK - S2)
+[Progress 75/305] Scraping Sem: 3155 (BAHASA INGGRIS - S2)
+[Progress 76/305] Scraping Sem: 3164 (BAHASA INDONESIA - S2)
+[Progress 77/305] Scraping Sem: 3052 (KAJIAN BUDAYA - S2)
+[Progress 78/305] Scraping Sem: 3062 (PARIWISATA - S1)
+[Progress 79/305] Scraping Sem: 2873 (SASTRA INDONESIA - S1)
+[WARNING] Failed fetching Sem 2873: request to https://api.neosia.unhas.ac.id/api/admin/penasihat_akademik?filters[id_prodi_semester]=2873 failed, reason: 
+[Progress 80/305] Scraping Sem: 2874 (SASTRA INGGRIS - S1)
+[Progress 81/305] Scraping Sem: 2875 (SASTRA PRANCIS - S1)
+[Progress 82/305] Scraping Sem: 2876 (SASTRA ASIA BARAT - S1)
+[Progress 83/305] Scraping Sem: 2877 (SASTRA BUGIS-MAKASSAR - S1)
+[Progress 84/305] Scraping Sem: 2878 (ARKEOLOGI - S1)
+[Progress 85/305] Scraping Sem: 2879 (ILMU SEJARAH - S1)
+[WARNING] Failed fetching Sem 2879: request to https://api.neosia.unhas.ac.id/api/admin/penasihat_akademik?filters[id_prodi_semester]=2879 failed, reason: 
+[Progress 86/305] Scraping Sem: 2880 (SASTRA JEPANG - S1)
+[Progress 87/305] Scraping Sem: 2908 (ILMU LINGUISTIK - S3)
+[Progress 88/305] Scraping Sem: 2911 (LINGUISTIK - S2)
+[Progress 89/305] Scraping Sem: 2913 (BAHASA INGGRIS - S2)
+[Progress 90/305] Scraping Sem: 2922 (BAHASA INDONESIA - S2)
+[Progress 91/305] Scraping Sem: 3003 (ARKEOLOGI - S2)
+[Progress 92/305] Scraping Sem: 3011 (BAHASA MANDARIN DAN KEBUDAYAAN TIONGKOK)
+[Progress 93/305] Scraping Sem: 3019 (BAHASA INGGRIS - S3)
+[Progress 94/305] Scraping Sem: 3023 (Sejarah - S2)
+[Progress 95/305] Scraping Sem: 3026 (SASTRA INDONESIA - S3)
+[Progress 96/305] Scraping Sem: 2626 (SASTRA INDONESIA - S1)
+[Progress 97/305] Scraping Sem: 2627 (SASTRA INGGRIS - S1)
+[Progress 98/305] Scraping Sem: 2628 (SASTRA PRANCIS - S1)
+[Progress 99/305] Scraping Sem: 2629 (SASTRA ASIA BARAT - S1)
+[Progress 100/305] Scraping Sem: 2630 (SASTRA BUGIS-MAKASSAR - S1)
+[Progress 101/305] Scraping Sem: 2631 (ARKEOLOGI - S1)
+[Progress 102/305] Scraping Sem: 2632 (ILMU SEJARAH - S1)
+[Progress 103/305] Scraping Sem: 2633 (SASTRA JEPANG - S1)
+[Progress 104/305] Scraping Sem: 2661 (ILMU LINGUISTIK - S3)
+[Progress 105/305] Scraping Sem: 2664 (LINGUISTIK - S2)
+[Progress 106/305] Scraping Sem: 2666 (BAHASA INGGRIS - S2)
+[Progress 107/305] Scraping Sem: 2675 (BAHASA INDONESIA - S2)
+[Progress 108/305] Scraping Sem: 2756 (ARKEOLOGI - S2)
+[Progress 109/305] Scraping Sem: 2764 (BAHASA MANDARIN DAN KEBUDAYAAN TIONGKOK)
+[Progress 110/305] Scraping Sem: 2772 (BAHASA INGGRIS - S3)
+[Progress 111/305] Scraping Sem: 2776 (Sejarah - S2)
+[Progress 112/305] Scraping Sem: 2779 (SASTRA INDONESIA - S3)
+[Progress 113/305] Scraping Sem: 2805 (KAJIAN BUDAYA - S2)
+[Progress 114/305] Scraping Sem: 2815 (PARIWISATA - S1)
+[Progress 115/305] Scraping Sem: 2525 (ARKEOLOGI - S2)
+[Progress 116/305] Scraping Sem: 2533 (BAHASA MANDARIN DAN KEBUDAYAAN TIONGKOK)
+[Progress 117/305] Scraping Sem: 2541 (BAHASA INGGRIS - S3)
+[Progress 118/305] Scraping Sem: 2545 (Sejarah - S2)
+[Progress 119/305] Scraping Sem: 2548 (SASTRA INDONESIA - S3)
+[Progress 120/305] Scraping Sem: 2574 (KAJIAN BUDAYA - S2)
+[Progress 121/305] Scraping Sem: 2584 (PARIWISATA - S1)
+[Progress 122/305] Scraping Sem: 2395 (SASTRA INDONESIA - S1)
+[Progress 123/305] Scraping Sem: 2396 (SASTRA INGGRIS - S1)
+[Progress 124/305] Scraping Sem: 2397 (SASTRA PRANCIS - S1)
+[Progress 125/305] Scraping Sem: 2398 (SASTRA ASIA BARAT - S1)
+[Progress 126/305] Scraping Sem: 2399 (SASTRA BUGIS-MAKASSAR - S1)
+[WARNING] Failed fetching Sem 2399: request to https://api.neosia.unhas.ac.id/api/admin/penasihat_akademik?filters[id_prodi_semester]=2399 failed, reason: 
+[Progress 127/305] Scraping Sem: 2400 (ARKEOLOGI - S1)
+[Progress 128/305] Scraping Sem: 2401 (ILMU SEJARAH - S1)
+[Progress 129/305] Scraping Sem: 2402 (SASTRA JEPANG - S1)
+[Progress 130/305] Scraping Sem: 2430 (ILMU LINGUISTIK - S3)
+[Progress 131/305] Scraping Sem: 2433 (LINGUISTIK - S2)
+[Progress 132/305] Scraping Sem: 2435 (BAHASA INGGRIS - S2)
+[Progress 133/305] Scraping Sem: 2444 (BAHASA INDONESIA - S2)
+[WARNING] Failed fetching Sem 2444: request to https://api.neosia.unhas.ac.id/api/admin/penasihat_akademik?filters[id_prodi_semester]=2444 failed, reason: socket hang up
+[Progress 134/305] Scraping Sem: 2357 (PARIWISATA - S1)
+[Progress 135/305] Scraping Sem: 2347 (KAJIAN BUDAYA - S2)
+[Progress 136/305] Scraping Sem: 2324 (SASTRA INDONESIA - S3)
+[Progress 137/305] Scraping Sem: 2321 (Sejarah - S2)
+[Progress 138/305] Scraping Sem: 2317 (BAHASA INGGRIS - S3)
+[Progress 139/305] Scraping Sem: 2309 (BAHASA MANDARIN DAN KEBUDAYAAN TIONGKOK)
+[Progress 140/305] Scraping Sem: 2301 (ARKEOLOGI - S2)
+[Progress 141/305] Scraping Sem: 2220 (BAHASA INDONESIA - S2)
+[Progress 142/305] Scraping Sem: 2211 (BAHASA INGGRIS - S2)
+[Progress 143/305] Scraping Sem: 2209 (LINGUISTIK - S2)
+[Progress 144/305] Scraping Sem: 2206 (ILMU LINGUISTIK - S3)
+[Progress 145/305] Scraping Sem: 2178 (SASTRA JEPANG - S1)
+[Progress 146/305] Scraping Sem: 2177 (ILMU SEJARAH - S1)
+[Progress 147/305] Scraping Sem: 2176 (ARKEOLOGI - S1)
+[Progress 148/305] Scraping Sem: 2175 (SASTRA BUGIS-MAKASSAR - S1)
+[Progress 149/305] Scraping Sem: 2174 (SASTRA ASIA BARAT - S1)
+[Progress 150/305] Scraping Sem: 2173 (SASTRA PRANCIS - S1)
+[Progress 151/305] Scraping Sem: 2172 (SASTRA INGGRIS - S1)
+[Progress 152/305] Scraping Sem: 2171 (SASTRA INDONESIA - S1)
+[Progress 153/305] Scraping Sem: 2139 (PARIWISATA - S1)
+[Progress 154/305] Scraping Sem: 2123 (KAJIAN BUDAYA - S2)
+[Progress 155/305] Scraping Sem: 2094 (Sejarah - S2)
+[Progress 156/305] Scraping Sem: 2097 (SASTRA INDONESIA - S3)
+[Progress 157/305] Scraping Sem: 2090 (BAHASA INGGRIS - S3)
+[Progress 158/305] Scraping Sem: 2082 (BAHASA MANDARIN DAN KEBUDAYAAN TIONGKOK)
+[Progress 159/305] Scraping Sem: 2074 (ARKEOLOGI - S2)
+[Progress 160/305] Scraping Sem: 1994 (BAHASA INDONESIA - S2)
+[Progress 161/305] Scraping Sem: 1980 (ILMU LINGUISTIK - S3)
+[Progress 162/305] Scraping Sem: 1983 (LINGUISTIK - S2)
+[Progress 163/305] Scraping Sem: 1985 (BAHASA INGGRIS - S2)
+[Progress 164/305] Scraping Sem: 1959 (SASTRA JEPANG - S1)
+[Progress 165/305] Scraping Sem: 1952 (SASTRA INDONESIA - S1)
+[Progress 166/305] Scraping Sem: 1953 (SASTRA INGGRIS - S1)
+[Progress 167/305] Scraping Sem: 1954 (SASTRA PRANCIS - S1)
+[Progress 168/305] Scraping Sem: 1955 (SASTRA ASIA BARAT - S1)
+[WARNING] Failed fetching Sem 1955: request to https://api.neosia.unhas.ac.id/api/admin/penasihat_akademik?filters[id_prodi_semester]=1955 failed, reason: 
+[Progress 169/305] Scraping Sem: 1956 (SASTRA BUGIS-MAKASSAR - S1)
+[Progress 170/305] Scraping Sem: 1957 (ARKEOLOGI - S1)
+[Progress 171/305] Scraping Sem: 1958 (ILMU SEJARAH - S1)
+[Progress 172/305] Scraping Sem: 1861 (KAJIAN BUDAYA - S2)
+[Progress 173/305] Scraping Sem: 1812 (ARKEOLOGI - S2)
+[Progress 174/305] Scraping Sem: 1820 (BAHASA MANDARIN DAN KEBUDAYAAN TIONGKOK)
+[Progress 175/305] Scraping Sem: 1828 (BAHASA INGGRIS - S3)
+[WARNING] Failed fetching Sem 1828: request to https://api.neosia.unhas.ac.id/api/admin/penasihat_akademik?filters[id_prodi_semester]=1828 failed, reason: socket hang up
+[Progress 176/305] Scraping Sem: 1832 (Sejarah - S2)
+[Progress 177/305] Scraping Sem: 1835 (SASTRA INDONESIA - S3)
+[Progress 178/305] Scraping Sem: 1717 (ILMU LINGUISTIK - S3)
+[Progress 179/305] Scraping Sem: 1720 (LINGUISTIK - S2)
+[Progress 180/305] Scraping Sem: 1722 (BAHASA INGGRIS - S2)
+[Progress 181/305] Scraping Sem: 1731 (BAHASA INDONESIA - S2)
+[Progress 182/305] Scraping Sem: 1682 (SASTRA INDONESIA - S1)
+[Progress 183/305] Scraping Sem: 1683 (SASTRA INGGRIS - S1)
+[Progress 184/305] Scraping Sem: 1684 (SASTRA PRANCIS - S1)
+[Progress 185/305] Scraping Sem: 1685 (SASTRA ASIA BARAT - S1)
+[Progress 186/305] Scraping Sem: 1686 (SASTRA BUGIS-MAKASSAR - S1)
+[Progress 187/305] Scraping Sem: 1687 (ARKEOLOGI - S1)
+[Progress 188/305] Scraping Sem: 1688 (ILMU SEJARAH - S1)
+[Progress 189/305] Scraping Sem: 1689 (SASTRA JEPANG - S1)
+[Progress 190/305] Scraping Sem: 1618 (ARKEOLOGI - S2)
+[Progress 191/305] Scraping Sem: 1617 (LINGUISTIK - S2)
+[Progress 192/305] Scraping Sem: 1616 (LINGUISTIK - S2)
+[Progress 193/305] Scraping Sem: 1615 (ARKEOLOGI - S1)
+[Progress 194/305] Scraping Sem: 1614 (ARKEOLOGI - S1)
+[Progress 195/305] Scraping Sem: 1613 (ARKEOLOGI - S1)
+[Progress 196/305] Scraping Sem: 1612 (SASTRA INDONESIA - S1)
+[Progress 197/305] Scraping Sem: 1611 (SASTRA INDONESIA - S1)
+[Progress 198/305] Scraping Sem: 1610 (SASTRA INDONESIA - S1)
+[Progress 199/305] Scraping Sem: 1574 (ILMU SEJARAH - S1)
+[Progress 200/305] Scraping Sem: 1573 (ILMU SEJARAH - S1)
+[Progress 201/305] Scraping Sem: 1572 (ILMU SEJARAH - S1)
+[Progress 202/305] Scraping Sem: 1571 (SASTRA BUGIS-MAKASSAR - S1)
+[Progress 203/305] Scraping Sem: 1570 (SASTRA BUGIS-MAKASSAR - S1)
+[Progress 204/305] Scraping Sem: 1569 (SASTRA BUGIS-MAKASSAR - S1)
+[Progress 205/305] Scraping Sem: 1568 (SASTRA PRANCIS - S1)
+[Progress 206/305] Scraping Sem: 1567 (SASTRA PRANCIS - S1)
+[Progress 207/305] Scraping Sem: 1515 (Sejarah - S2)
+[Progress 208/305] Scraping Sem: 1518 (SASTRA INDONESIA - S3)
+[Progress 209/305] Scraping Sem: 1511 (BAHASA INGGRIS - S3)
+[Progress 210/305] Scraping Sem: 1503 (BAHASA MANDARIN DAN KEBUDAYAAN TIONGKOK)
+[Progress 211/305] Scraping Sem: 1495 (ARKEOLOGI - S2)
+[Progress 212/305] Scraping Sem: 1414 (BAHASA INDONESIA - S2)
+[Progress 213/305] Scraping Sem: 1403 (LINGUISTIK - S2)
+[Progress 214/305] Scraping Sem: 1405 (BAHASA INGGRIS - S2)
+[Progress 215/305] Scraping Sem: 1400 (ILMU LINGUISTIK - S3)
+[WARNING] Failed fetching Sem 1400: request to https://api.neosia.unhas.ac.id/api/admin/penasihat_akademik?filters[id_prodi_semester]=1400 failed, reason: socket hang up
+[Progress 216/305] Scraping Sem: 1371 (ILMU SEJARAH - S1)
+[Progress 217/305] Scraping Sem: 1372 (SASTRA JEPANG - S1)
+[Progress 218/305] Scraping Sem: 1366 (SASTRA INGGRIS - S1)
+[Progress 219/305] Scraping Sem: 1367 (SASTRA PRANCIS - S1)
+[Progress 220/305] Scraping Sem: 1368 (SASTRA ASIA BARAT - S1)
+[WARNING] Failed fetching Sem 1368: request to https://api.neosia.unhas.ac.id/api/admin/penasihat_akademik?filters[id_prodi_semester]=1368 failed, reason: 
+[Progress 221/305] Scraping Sem: 1369 (SASTRA BUGIS-MAKASSAR - S1)
+[Progress 222/305] Scraping Sem: 1370 (ARKEOLOGI - S1)
+[Progress 223/305] Scraping Sem: 1365 (SASTRA INDONESIA - S1)
+[Progress 224/305] Scraping Sem: 1325 (SASTRA PRANCIS - S1)
+[Progress 225/305] Scraping Sem: 1301 (BAHASA MANDARIN DAN KEBUDAYAAN TIONGKOK)
+[Progress 226/305] Scraping Sem: 1269 (ILMU LINGUISTIK - S3)
+[Progress 227/305] Scraping Sem: 1268 (ILMU LINGUISTIK - S3)
+[Progress 228/305] Scraping Sem: 1243 (SASTRA INGGRIS - S1)
+[Progress 229/305] Scraping Sem: 1236 (SASTRA JEPANG - S1)
+[Progress 230/305] Scraping Sem: 1233 (SASTRA JEPANG - S1)
+[Progress 231/305] Scraping Sem: 1232 (SASTRA JEPANG - S1)
+[Progress 232/305] Scraping Sem: 1231 (SASTRA JEPANG - S1)
+[Progress 233/305] Scraping Sem: 1230 (SASTRA JEPANG - S1)
+[WARNING] Failed fetching Sem 1230: request to https://api.neosia.unhas.ac.id/api/admin/penasihat_akademik?filters[id_prodi_semester]=1230 failed, reason: 
+[Progress 234/305] Scraping Sem: 1229 (SASTRA JEPANG - S1)
+[Progress 235/305] Scraping Sem: 1228 (SASTRA JEPANG - S1)
+[Progress 236/305] Scraping Sem: 1227 (SASTRA JEPANG - S1)
+[Progress 237/305] Scraping Sem: 1225 (ILMU SEJARAH - S1)
+[Progress 238/305] Scraping Sem: 1224 (ILMU SEJARAH - S1)
+[Progress 239/305] Scraping Sem: 1223 (SASTRA ASIA BARAT - S1)
+[Progress 240/305] Scraping Sem: 1222 (SASTRA ASIA BARAT - S1)
+[Progress 241/305] Scraping Sem: 1185 (ARKEOLOGI - S1)
+[Progress 242/305] Scraping Sem: 1104 (ARKEOLOGI - S1)
+[Progress 243/305] Scraping Sem: 1080 (SASTRA ASIA BARAT - S1)
+[Progress 244/305] Scraping Sem: 1079 (SASTRA ASIA BARAT - S1)
+[Progress 245/305] Scraping Sem: 1078 (ARKEOLOGI - S1)
+[Progress 246/305] Scraping Sem: 1077 (SASTRA JEPANG - S1)
+[Progress 247/305] Scraping Sem: 1028 (SASTRA BUGIS-MAKASSAR - S1)
+[Progress 248/305] Scraping Sem: 1027 (ILMU LINGUISTIK - S3)
+[Progress 249/305] Scraping Sem: 769 (LINGUISTIK - S2)
+[Progress 250/305] Scraping Sem: 663 (ILMU LINGUISTIK - S3)
+[Progress 251/305] Scraping Sem: 662 (ILMU LINGUISTIK - S3)
+[Progress 252/305] Scraping Sem: 661 (ILMU LINGUISTIK - S3)
+[Progress 253/305] Scraping Sem: 660 (ILMU LINGUISTIK - S3)
+[Progress 254/305] Scraping Sem: 599 (SASTRA BUGIS-MAKASSAR - S1)
+[Progress 255/305] Scraping Sem: 381 (SASTRA INDONESIA - S3)
+[Progress 256/305] Scraping Sem: 375 (BAHASA INGGRIS - S3)
+[Progress 257/305] Scraping Sem: 379 (Sejarah - S2)
+[Progress 258/305] Scraping Sem: 367 (BAHASA MANDARIN DAN KEBUDAYAAN TIONGKOK)
+[Progress 259/305] Scraping Sem: 359 (ARKEOLOGI - S2)
+[Progress 260/305] Scraping Sem: 278 (BAHASA INDONESIA - S2)
+[Progress 261/305] Scraping Sem: 267 (LINGUISTIK - S2)
+[Progress 262/305] Scraping Sem: 269 (BAHASA INGGRIS - S2)
+[Progress 263/305] Scraping Sem: 264 (ILMU LINGUISTIK - S3)
+[Progress 264/305] Scraping Sem: 232 (SASTRA ASIA BARAT - S1)
+[Progress 265/305] Scraping Sem: 233 (SASTRA BUGIS-MAKASSAR - S1)
+[Progress 266/305] Scraping Sem: 234 (ARKEOLOGI - S1)
+[Progress 267/305] Scraping Sem: 235 (ILMU SEJARAH - S1)
+[Progress 268/305] Scraping Sem: 236 (SASTRA JEPANG - S1)
+[Progress 269/305] Scraping Sem: 229 (SASTRA INDONESIA - S1)
+[Progress 270/305] Scraping Sem: 230 (SASTRA INGGRIS - S1)
+[Progress 271/305] Scraping Sem: 231 (SASTRA PRANCIS - S1)
+[Progress 272/305] Scraping Sem: 196 (Sejarah - S2)
+[Progress 273/305] Scraping Sem: 187 (BAHASA INGGRIS - S3)
+[Progress 274/305] Scraping Sem: 140 (BAHASA MANDARIN DAN KEBUDAYAAN TIONGKOK)
+[Progress 275/305] Scraping Sem: 139 (ARKEOLOGI - S2)
+[Progress 276/305] Scraping Sem: 138 (BAHASA INDONESIA - S2)
+[Progress 277/305] Scraping Sem: 137 (BAHASA INGGRIS - S2)
+[Progress 278/305] Scraping Sem: 136 (LINGUISTIK - S2)
+[WARNING] Failed fetching Sem 136: request to https://api.neosia.unhas.ac.id/api/admin/penasihat_akademik?filters[id_prodi_semester]=136 failed, reason: socket hang up
+[Progress 279/305] Scraping Sem: 135 (ILMU LINGUISTIK - S3)
+[Progress 280/305] Scraping Sem: 134 (SASTRA JEPANG - S1)
+[Progress 281/305] Scraping Sem: 133 (ILMU SEJARAH - S1)
+[Progress 282/305] Scraping Sem: 132 (ARKEOLOGI - S1)
+[Progress 283/305] Scraping Sem: 131 (SASTRA BUGIS-MAKASSAR - S1)
+[Progress 284/305] Scraping Sem: 130 (SASTRA ASIA BARAT - S1)
+[Progress 285/305] Scraping Sem: 129 (SASTRA PRANCIS - S1)
+[Progress 286/305] Scraping Sem: 114 (SASTRA INDONESIA - S1)
+[WARNING] Failed fetching Sem 114: Invalid response body while trying to fetch https://api.neosia.unhas.ac.id/api/admin/penasihat_akademik?filters[id_prodi_semester]=114: Premature close
+[Progress 287/305] Scraping Sem: 29 (SASTRA INGGRIS - S1)
+[Progress 288/305] Scraping Sem: 831 (SASTRA INDONESIA - S1)
+[Progress 289/305] Scraping Sem: 832 (SASTRA INGGRIS - S1)
+[Progress 290/305] Scraping Sem: 833 (SASTRA PRANCIS - S1)
+[Progress 291/305] Scraping Sem: 834 (SASTRA ASIA BARAT - S1)
+[Progress 292/305] Scraping Sem: 835 (SASTRA BUGIS-MAKASSAR - S1)
+[Progress 293/305] Scraping Sem: 836 (ARKEOLOGI - S1)
+[Progress 294/305] Scraping Sem: 837 (ILMU SEJARAH - S1)
+[Progress 295/305] Scraping Sem: 838 (SASTRA JEPANG - S1)
+[Progress 296/305] Scraping Sem: 884 (ILMU LINGUISTIK - S3)
+[Progress 297/305] Scraping Sem: 887 (LINGUISTIK - S2)
+[Progress 298/305] Scraping Sem: 889 (BAHASA INGGRIS - S2)
+[Progress 299/305] Scraping Sem: 899 (BAHASA INDONESIA - S2)
+[Progress 300/305] Scraping Sem: 987 (ARKEOLOGI - S2)
+[Progress 301/305] Scraping Sem: 988 (BAHASA MANDARIN)
+[Progress 302/305] Scraping Sem: 996 (BAHASA MANDARIN DAN KEBUDAYAAN TIONGKOK)
+[Progress 303/305] Scraping Sem: 1004 (BAHASA INGGRIS - S3)
+[WARNING] Failed fetching Sem 1004: request to https://api.neosia.unhas.ac.id/api/admin/penasihat_akademik?filters[id_prodi_semester]=1004 failed, reason: socket hang up
+[Progress 304/305] Scraping Sem: 1008 (Sejarah - S2)
+[Progress 305/305] Scraping Sem: 1011 (SASTRA INDONESIA - S3)
+
+============== SYNC PA SE-FAKULTAS SELESAI ==============
+Total Dosen PA unik diperbarui: 2585
+Total Relasi Mahasiswa berhasil diikat: 41292

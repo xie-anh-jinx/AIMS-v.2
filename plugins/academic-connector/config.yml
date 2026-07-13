@@ -33,6 +33,11 @@ accounts:
     password: "${ENV_PRODI_SEJ_PASS}"
     program_studi: "Ilmu Sejarah"
 
+  - id: "fib_superadmin"
+    username: "F_7371125410970003"
+    password: "28141"
+    program_studi: "Fakultas Ilmu Budaya"
+
 browser:
   headless: true # Diarahkan true untuk mode server/CLI
   engine: "playwright"

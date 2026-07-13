@@ -104,10 +104,32 @@ export default function AdminDashboard() {
 
   // Profile Update State
   const [showProfileModal, setShowProfileModal] = useState(false);
-  const [profileForm, setProfileForm] = useState({ username: '', password: '', email: '', profile_picture: '' });
+  const [profileForm, setProfileForm] = useState({ username: '', password: '', email: '', whatsapp: '', profile_picture: '' });
   const [submittingProfile, setSubmittingProfile] = useState(false);
   const [profilePictureUrl, setProfilePictureUrl] = useState<string | null>(null);
   const [adminName, setAdminName] = useState<string>('Administrator');
+
+  const openProfileModal = async () => {
+    try {
+      const res = await fetch(`${API_URL}/admin/profile`, { headers: authHeaders() });
+      if (res.ok) {
+        const data = await res.json();
+        setProfileForm({
+          username: data.username || '',
+          password: '',
+          email: data.email || '',
+          whatsapp: data.whatsapp || '',
+          profile_picture: data.profile_picture || ''
+        });
+      } else {
+        setProfileForm({ username: '', password: '', email: '', whatsapp: '', profile_picture: '' });
+      }
+    } catch (err) {
+      console.error(err);
+      setProfileForm({ username: '', password: '', email: '', whatsapp: '', profile_picture: '' });
+    }
+    setShowProfileModal(true);
+  };
 
   const fetchSentAdminNotes = useCallback(async () => {
     try {
@@ -279,17 +301,36 @@ export default function AdminDashboard() {
     e.preventDefault();
     setSubmittingProfile(true);
     try {
-      if (profileForm.profile_picture) {
-         await fetch(`${API_URL}/auth/profile-picture`, {
-           method: 'PUT',
-           headers: { 'Content-Type': 'application/json', ...authHeaders() },
-           body: JSON.stringify({ profile_picture: profileForm.profile_picture })
-         });
-         setProfilePictureUrl(profileForm.profile_picture);
-         localStorage.setItem('profile_picture', profileForm.profile_picture);
+      const res = await fetch(`${API_URL}/admin/profile`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', ...authHeaders() },
+        body: JSON.stringify({
+          username: profileForm.username,
+          password: profileForm.password,
+          email: profileForm.email,
+          whatsapp: profileForm.whatsapp
+        })
+      });
+      if (res.ok) {
+        if (profileForm.profile_picture) {
+           await fetch(`${API_URL}/auth/profile-picture`, {
+             method: 'PUT',
+             headers: { 'Content-Type': 'application/json', ...authHeaders() },
+             body: JSON.stringify({ profile_picture: profileForm.profile_picture })
+           });
+           setProfilePictureUrl(profileForm.profile_picture);
+           localStorage.setItem('profile_picture', profileForm.profile_picture);
+        }
+        alert("Profil berhasil diperbarui!");
+        setShowProfileModal(false);
+        if (profileForm.username) {
+          document.cookie = `name=${profileForm.username}; path=/; max-age=86400`;
+          setAdminName(profileForm.username);
+        }
+      } else {
+        const data = await res.json();
+        alert(data.detail || "Gagal memperbarui profil.");
       }
-      alert("Profil berhasil diperbarui!");
-      setShowProfileModal(false);
     } catch (err) {
       console.error(err);
       alert("Gagal memperbarui profil.");
@@ -339,10 +380,7 @@ export default function AdminDashboard() {
             </div>
           </div>
           <button 
-           onClick={() => {
-             setProfileForm({ username: '', password: '', email: '', profile_picture: '' });
-             setShowProfileModal(true);
-           }}
+           onClick={openProfileModal}
            className="flex items-center justify-center gap-2 w-full py-2 px-3 rounded-lg bg-red-500/10 hover:bg-red-500/20 text-red-400 text-xs font-semibold transition"
           >
             <Edit2 size={12} />
@@ -982,8 +1020,8 @@ export default function AdminDashboard() {
       {/* Profil Modal */}
       {showProfileModal && (
         <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-[#1e293b] rounded-2xl w-full max-w-md border border-[#334155] shadow-2xl">
-            <div className="p-5 border-b border-[#334155] flex justify-between items-center bg-[#1a2333]/80">
+          <div className="bg-[#1e293b] rounded-2xl w-full max-w-md border border-[#334155] shadow-2xl flex flex-col max-h-[85vh]">
+            <div className="p-5 border-b border-[#334155] flex justify-between items-center bg-[#1a2333]/80 shrink-0">
               <h3 className="font-bold text-white">Pengaturan Profil & Akun</h3>
               <button 
                 onClick={() => setShowProfileModal(false)}
@@ -993,7 +1031,7 @@ export default function AdminDashboard() {
               </button>
             </div>
             
-            <form onSubmit={handleUpdateProfile} className="p-6 space-y-4 max-h-[70vh] overflow-y-auto">
+            <form onSubmit={handleUpdateProfile} className="p-6 space-y-4 overflow-y-auto flex-1">
               <div>
                 <label className="block text-xs font-medium text-slate-400 mb-1">Upload Foto Profil (Opsional)</label>
                 <input 
@@ -1009,7 +1047,51 @@ export default function AdminDashboard() {
                   className="w-full bg-[#0f172a] border border-[#334155] rounded-xl px-4 py-2 text-sm text-white focus:outline-none file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-500/20 file:text-blue-400 hover:file:bg-blue-500/30"
                 />
               </div>
-              <div className="pt-4 border-t border-[#334155] flex justify-end gap-3">
+
+              <div>
+                <label className="block text-xs font-medium text-slate-400 mb-1">Username Login</label>
+                <input 
+                  type="text"
+                  required
+                  value={profileForm.username}
+                  onChange={e => setProfileForm({...profileForm, username: e.target.value})}
+                  className="w-full bg-[#0f172a] border border-[#334155] rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-red-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium text-slate-400 mb-1">Kata Sandi Baru</label>
+                <input 
+                  type="password"
+                  value={profileForm.password}
+                  onChange={e => setProfileForm({...profileForm, password: e.target.value})}
+                  placeholder="Isi hanya jika ingin mengganti sandi..."
+                  className="w-full bg-[#0f172a] border border-[#334155] rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-red-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium text-slate-400 mb-1">Email Aktif</label>
+                <input 
+                  type="email"
+                  value={profileForm.email}
+                  onChange={e => setProfileForm({...profileForm, email: e.target.value})}
+                  className="w-full bg-[#0f172a] border border-[#334155] rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-red-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium text-slate-400 mb-1">Nomor WhatsApp (+62)</label>
+                <input 
+                  type="text"
+                  value={profileForm.whatsapp}
+                  onChange={e => setProfileForm({...profileForm, whatsapp: e.target.value})}
+                  placeholder="+628123456789"
+                  className="w-full bg-[#0f172a] border border-[#334155] rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-green-500"
+                />
+              </div>
+
+              <div className="pt-4 border-t border-[#334155] flex justify-end gap-3 shrink-0">
                 <button type="button" onClick={() => setShowProfileModal(false)} className="px-4 py-2 text-sm font-semibold text-slate-300 hover:text-white transition">Batal</button>
                 <button type="submit" disabled={submittingProfile} className="px-4 py-2 bg-blue-600 hover:bg-blue-500 active:bg-blue-700 text-white text-sm font-semibold rounded-lg transition disabled:opacity-50">
                   {submittingProfile ? 'Menyimpan...' : 'Simpan Profil'}

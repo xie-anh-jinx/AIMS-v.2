@@ -8,7 +8,7 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from packages.database.connection import SessionLocal
-from packages.database.models import Student, Advisor, Course, Grade, AcademicRecord, User, AgentLog, NotificationLog, ConsultationLog, Reminder
+from packages.database.models import Student, Advisor, Course, Grade, AcademicRecord, User, AgentLog, NotificationLog, ConsultationLog, Reminder, AdminNote, ProdiAdmin
 import bcrypt
 
 def get_password_hash(password: str) -> str:
@@ -258,11 +258,13 @@ def run_seed():
     db.query(AgentLog).delete()
     db.query(NotificationLog).delete()
     db.query(ConsultationLog).delete()
+    db.query(AdminNote).delete()
     db.query(Reminder).delete()
     db.query(Grade).delete()
     db.query(AcademicRecord).delete()
     db.query(Student).delete()
     db.query(Course).delete()
+    db.query(ProdiAdmin).delete()
     db.query(Advisor).delete()
     db.query(User).delete()
     db.commit()

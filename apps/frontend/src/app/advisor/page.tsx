@@ -135,6 +135,32 @@ export default function AdvisorDashboard() {
     if(nimMatch) setAdvisorNip(decodeURIComponent(nimMatch[2]));
   }, []);
 
+  const openProfileModal = async () => {
+    try {
+      const token = document.cookie.match(/(^| )token=([^;]+)/)?.[2] || '';
+      const res = await fetch(`${API_URL}/advisor/profile`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setProfileForm({
+          username: data.username || '',
+          password: '',
+          email: data.email || '',
+          whatsapp: data.whatsapp || '',
+          telegram_username: data.telegram_username || '',
+          profile_picture: data.profile_picture || ''
+        });
+      } else {
+        setProfileForm({ username: '', password: '', email: '', whatsapp: '', telegram_username: '', profile_picture: '' });
+      }
+    } catch (err) {
+      console.error(err);
+      setProfileForm({ username: '', password: '', email: '', whatsapp: '', telegram_username: '', profile_picture: '' });
+    }
+    setShowProfileModal(true);
+  };
+
   const hideAdminNote = async (id: number) => {
     if (!confirm('Apakah Anda yakin ingin menyembunyikan pesan ini?')) return;
     try {
@@ -178,11 +204,19 @@ export default function AdvisorDashboard() {
   };
 
 
-  // --- Risk classification based on IPK (not AcademicRecord.status string) ---
+  // --- Risk classification based on AcademicRecord.status or IPK ---
   const activeStudents = students.filter(s => s.status !== 'Drop Out' && s.status !== 'Lulus' && s.status !== 'Non Aktif');
   const dropOutStudents = students.filter(s => s.status === 'Drop Out');
-  const highRisk = activeStudents.filter(s => (records[s.nim]?.ipk ?? 0) > 0 && (records[s.nim]?.ipk ?? 0) < 2.0);
-  const warning  = activeStudents.filter(s => (records[s.nim]?.ipk ?? 0) >= 2.0 && (records[s.nim]?.ipk ?? 0) < 2.75);
+  const highRisk = activeStudents.filter(s => 
+    records[s.nim]?.status === 'HIGH_RISK' || 
+    ((records[s.nim]?.ipk ?? 0) > 0 && (records[s.nim]?.ipk ?? 0) < 2.0)
+  );
+  const warning  = activeStudents.filter(s => 
+    (records[s.nim]?.status === 'Warning' || 
+    ((records[s.nim]?.ipk ?? 0) >= 2.0 && (records[s.nim]?.ipk ?? 0) < 2.75)) &&
+    records[s.nim]?.status !== 'HIGH_RISK' &&
+    !((records[s.nim]?.ipk ?? 0) > 0 && (records[s.nim]?.ipk ?? 0) < 2.0)
+  );
   const active   = activeStudents.filter(s => s.status === 'Aktif');
 
   // Chart data excludes DO students
@@ -266,6 +300,10 @@ export default function AdvisorDashboard() {
            setProfilePictureUrl(profileForm.profile_picture);
            localStorage.setItem('profile_picture', profileForm.profile_picture);
         }
+        if (profileForm.username) {
+          document.cookie = `name=${profileForm.username}; path=/; max-age=86400`;
+          setAdvisorName(profileForm.username);
+        }
       } else {
         const d = await res.json();
         alert(d.detail || "Gagal memperbarui profil.");
@@ -312,18 +350,8 @@ export default function AdvisorDashboard() {
             </div>
           </div>
           <button 
-           onClick={() => {
-             setProfileForm({ 
-               username: '', 
-               password: '', 
-               email: '', 
-               whatsapp: '', 
-               telegram_username: '',
-               profile_picture: ''
-             });
-             setShowProfileModal(true);
-           }}
-           className="flex items-center justify-center gap-2 w-full py-2 px-3 rounded-lg bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 text-xs font-semibold transition"
+            onClick={openProfileModal}
+            className="flex items-center justify-center gap-2 w-full py-2 px-3 rounded-lg bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 text-xs font-semibold transition"
           >
             <Edit2 size={12} />
             Pengaturan Profil

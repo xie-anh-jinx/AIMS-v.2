@@ -1,0 +1,52 @@
+◇ injected env (5) from ../../.env // tip: ⌘ suppress logs { quiet: true }
+[36m2026-07-13T10:16:26.641Z [INFO ] [V3-Engine] [AIMS] Academic Connector V3 Initialized.[0m
+Logging in via Playwright as Fakultas Super Admin...
+[36m2026-07-13T10:16:26.642Z [INFO ] [V3-Engine] [BrowserAdapter] Booting Chrome for fib_superadmin...[0m
+[36m2026-07-13T10:16:26.897Z [INFO ] [V3-Engine] [Auth] Starting Token Interception...[0m
+[36m2026-07-13T10:16:26.897Z [INFO ] [V3-Engine] [BrowserAdapter] Navigating to Portal...[0m
+[36m2026-07-13T10:16:30.264Z [INFO ] [V3-Engine] [BrowserAdapter] Submitting login...[0m
+[36m2026-07-13T10:16:36.624Z [INFO ] [V3-Engine] [BrowserAdapter] Login Navigation Complete, extracting Tokens...[0m
+[36m2026-07-13T10:16:36.666Z [INFO ] [V3-Engine] [BrowserAdapter] Chrome Closed for fib_superadmin.[0m
+Berhasil login Fakultas! Token Date: undefined
+Ditemukan 305 semester prodi aktif di seluruh fakultas.
+- Extracted 0 PAs from [ARKEOLOGI - S2] for Sem 3978
+- Extracted 0 PAs from [BAHASA MANDARIN DAN KEBUDAYAAN TIONGKOK] for Sem 3986
+- Extracted 0 PAs from [BAHASA INGGRIS - S3] for Sem 3994
+- Extracted 0 PAs from [Sejarah - S2] for Sem 3998
+- Extracted 0 PAs from [SASTRA INDONESIA - S3] for Sem 4001
+- Extracted 0 PAs from [KAJIAN BUDAYA - S2] for Sem 4026
+- Extracted 0 PAs from [PARIWISATA - S1] for Sem 4036
+- Extracted 0 PAs from [SASTRA INDONESIA - S1] for Sem 3848
+- Extracted 0 PAs from [SASTRA INGGRIS - S1] for Sem 3849
+- Extracted 0 PAs from [SASTRA PRANCIS - S1] for Sem 3850
+- Extracted 0 PAs from [SASTRA ASIA BARAT - S1] for Sem 3851
+- Extracted 0 PAs from [SASTRA BUGIS-MAKASSAR - S1] for Sem 3852
+- Extracted 0 PAs from [ARKEOLOGI - S1] for Sem 3853
+- Extracted 0 PAs from [ILMU SEJARAH - S1] for Sem 3854
+- Extracted 0 PAs from [SASTRA JEPANG - S1] for Sem 3855
+- Extracted 0 PAs from [ILMU LINGUISTIK - S3] for Sem 3883
+- Extracted 0 PAs from [LINGUISTIK - S2] for Sem 3886
+- Extracted 0 PAs from [BAHASA INGGRIS - S2] for Sem 3888
+- Extracted 0 PAs from [BAHASA INDONESIA - S2] for Sem 3897
+- Extracted 1 PAs from [ARKEOLOGI - S2] for Sem 3728
+- Extracted 9 PAs from [BAHASA MANDARIN DAN KEBUDAYAAN TIONGKOK] for Sem 3736
+- Extracted 7 PAs from [BAHASA INGGRIS - S3] for Sem 3744
+file:///home/kotaromiyabi/academic-ai-system/plugins/academic-connector/node_modules/node-fetch/src/index.js:108
+			reject(new FetchError(`request to ${request.url} failed, reason: ${error.message}`, 'system', error));
+			       ^
+
+FetchError: request to https://api.neosia.unhas.ac.id/api/admin/penasihat_akademik?filters[id_prodi_semester]=3748 failed, reason: socket hang up
+    at ClientRequest.<anonymous> (file:///home/kotaromiyabi/academic-ai-system/plugins/academic-connector/node_modules/node-fetch/src/index.js:108:11)
+    at ClientRequest.emit (node:events:509:28)
+    at emitErrorEvent (node:_http_client:109:11)
+    at TLSSocket.socketOnEnd (node:_http_client:617:5)
+    at TLSSocket.emit (node:events:521:24)
+    at endReadableNT (node:internal/streams/readable:1729:12)
+    at process.processTicksAndRejections (node:internal/process/task_queues:90:21) {
+  type: 'system',
+  errno: 'ECONNRESET',
+  code: 'ECONNRESET',
+  erroredSysCall: undefined
+}
+
+Node.js v24.15.0

@@ -158,7 +158,7 @@ export default function LoginPage() {
             <div className="grid grid-cols-2 gap-2 text-xs text-slate-300">
               <div className="bg-slate-800/60 rounded-lg p-2 text-center border border-white/5">
                 <p className="font-semibold text-blue-400 mb-1">Mahasiswa</p>
-                <p>NIM: F071241071</p>
+                <p>NIM: F081231020</p>
               </div>
               <div className="bg-slate-800/60 rounded-lg p-2 text-center border border-white/5">
                 <p className="font-semibold text-purple-400 mb-1">Dosen PA</p>

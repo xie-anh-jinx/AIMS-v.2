@@ -11,6 +11,8 @@ class User(Base):
     hashed_password = Column(String)
     role = Column(String) # ADMIN, ADVISOR, STUDENT, PRODI
     profile_picture = Column(Text, nullable=True)
+    email = Column(String, nullable=True)
+    whatsapp = Column(String, nullable=True)
 
 class ProdiAdmin(Base):
     __tablename__ = 'prodi_admins'
@@ -19,6 +21,8 @@ class ProdiAdmin(Base):
     user_id = Column(Integer, ForeignKey('users.id'), nullable=True)
     nama = Column(String)
     prodi_name = Column(String) # Tracks which prodi this admin manages
+    email = Column(String, nullable=True)
+    whatsapp = Column(String, nullable=True)
 
 class Student(Base):
     __tablename__ = 'students'

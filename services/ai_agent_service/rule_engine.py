@@ -110,5 +110,37 @@ class RuleEngine:
                     notify_advisor=True
                 ))
 
+        # ── Rule 5: Explicit Record Level HIGH_RISK or Warning status ────────
+        rec_status = latest.get("status")
+        if rec_status == "HIGH_RISK":
+            if not any(a.rule_name == "LOW_IPK" for a in actions):
+                actions.append(RuleAction(
+                    **base,
+                    rule_name="EXPLICIT_HIGH_RISK",
+                    action="NOTIFY_ADVISOR",
+                    severity="HIGH",
+                    message=(
+                        f"🚨 *PERINGATAN STATUS RISIKO TINGGI*\n\n"
+                        f"Mahasiswa: *{student['nama']}* ({student['nim']})\n"
+                        f"Status Evaluasi: *HIGH_RISK* (SKS: {sks}, IPK: {ipk:.2f})\n\n"
+                        f"Mahasiswa dalam kategori risiko tinggi. Segera jadwalkan konsultasi."
+                    ),
+                    notify_advisor=True
+                ))
+        elif rec_status == "Warning":
+            if not any(a.rule_name in ["LOW_IPS_WARNING", "CONSECUTIVE_IPK_DROP"] for a in actions):
+                actions.append(RuleAction(
+                    **base,
+                    rule_name="EXPLICIT_WARNING",
+                    action="SEND_REMINDER",
+                    severity="MEDIUM",
+                    message=(
+                        f"⚠️ *PERINGATAN STATUS AKADEMIS*\n\n"
+                        f"Halo {student['nama']}, status akademis Anda memerlukan perhatian (Warning).\n"
+                        f"Segera tingkatkan performa akademik Anda dan konsultasi dengan Dosen PA."
+                    ),
+                    notify_advisor=True
+                ))
+
         logger.info(f"Evaluated {student['nim']}: {len(actions)} rule(s) triggered.")
         return actions

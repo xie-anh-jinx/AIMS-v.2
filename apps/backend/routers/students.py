@@ -272,6 +272,7 @@ def update_student_profile(nim: str, payload: ProfileUpdateRequest, db: Session 
         student.email = payload.email
     if payload.phone_number_wa is not None:
         student.phone_number_wa = payload.phone_number_wa
+        student.nomor_whatsapp = payload.phone_number_wa
     if payload.telegram_username is not None:
         student.telegram_username = payload.telegram_username
         

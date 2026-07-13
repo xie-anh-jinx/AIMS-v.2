@@ -94,6 +94,24 @@ def archive_consultation(
     db.commit()
     return {"message": "Catatan berhasil dihapus dari riwayat Anda"}
 
+@router.get("/profile")
+def get_advisor_profile(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    if current_user.role != "ADVISOR":
+        raise HTTPException(status_code=403, detail="Hanya Advisor yang diizinkan")
+    advisor = db.query(Advisor).filter(Advisor.user_id == current_user.id).first()
+    if not advisor:
+        raise HTTPException(status_code=404, detail="Profil Advisor tidak ditemukan")
+    return {
+        "username": current_user.username,
+        "email": advisor.email or "",
+        "whatsapp": advisor.whatsapp or "",
+        "telegram_username": advisor.telegram_username or "",
+        "profile_picture": current_user.profile_picture or ""
+    }
+
 @router.put("/profile")
 def update_advisor_profile(
     payload: AdvisorProfileUpdateRequest, 

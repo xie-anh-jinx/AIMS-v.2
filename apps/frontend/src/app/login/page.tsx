@@ -153,19 +153,10 @@ export default function LoginPage() {
             </button>
           </form>
 
-          <div className="mt-6 pt-5 border-t border-white/10">
-            <p className="text-xs text-slate-400 text-center mb-2">Akun Demo FIB:</p>
-            <div className="grid grid-cols-2 gap-2 text-xs text-slate-300">
-              <div className="bg-slate-800/60 rounded-lg p-2 text-center border border-white/5">
-                <p className="font-semibold text-blue-400 mb-1">Mahasiswa</p>
-                <p>NIM: F081231020</p>
-              </div>
-              <div className="bg-slate-800/60 rounded-lg p-2 text-center border border-white/5">
-                <p className="font-semibold text-purple-400 mb-1">Dosen PA</p>
-                <p>User: PA_FRN1</p>
-              </div>
-            </div>
-            <p className="text-xs text-slate-500 text-center mt-3">Password: <span className="text-slate-300 font-mono">password123</span></p>
+          <div className="mt-6 pt-5 border-t border-white/10 text-center">
+            <p className="text-xs text-slate-400">
+              Lupa kata sandi? Silakan hubungi <strong>Admin Akademik FIB</strong> atau <strong>Staf Program Studi</strong> Anda untuk bantuan reset manual.
+            </p>
           </div>
         </div>
       </div>

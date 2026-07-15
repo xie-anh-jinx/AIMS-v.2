@@ -136,3 +136,37 @@ def update_profile_picture(payload: ProfilePictureUpdate, db: Session = Depends(
     current_user.profile_picture = payload.profile_picture
     db.commit()
     return {"status": "success", "message": "Profile picture updated"}
+
+class ResetUserPasswordRequest(BaseModel):
+    target_username: str
+    new_password: Optional[str] = "password123"
+
+@router.post("/reset-user-password")
+def reset_user_password(payload: ResetUserPasswordRequest, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    if current_user.role not in ["ADMIN", "PRODI"]:
+        raise HTTPException(status_code=403, detail="Hanya Admin atau Kaprodi yang diizinkan mereset password pengguna")
+    
+    target_user = db.query(User).filter(User.username == payload.target_username).first()
+    if not target_user:
+        raise HTTPException(status_code=404, detail="User tidak ditemukan")
+        
+    if current_user.role == "PRODI":
+        prodi_admin = db.query(ProdiAdmin).filter(ProdiAdmin.user_id == current_user.id).first()
+        if not prodi_admin:
+            raise HTTPException(status_code=403, detail="Akses ditolak")
+            
+        if target_user.role == "STUDENT":
+            student = db.query(Student).filter(Student.user_id == target_user.id).first()
+            if not student or student.prodi != prodi_admin.prodi_name:
+                raise HTTPException(status_code=403, detail="Kaprodi hanya diizinkan mereset password mahasiswa dari prodinya sendiri")
+        elif target_user.role == "ADVISOR":
+            advisor = db.query(Advisor).filter(Advisor.user_id == target_user.id).first()
+            if not advisor or advisor.prodi != prodi_admin.prodi_name:
+                raise HTTPException(status_code=403, detail="Kaprodi hanya diizinkan mereset password dosen PA dari prodinya sendiri")
+        else:
+            raise HTTPException(status_code=403, detail="Kaprodi tidak diizinkan mereset password peran ini")
+
+    target_user.hashed_password = get_password_hash(payload.new_password)
+    db.commit()
+    return {"status": "success", "message": f"Password untuk user {payload.target_username} berhasil direset"}
+

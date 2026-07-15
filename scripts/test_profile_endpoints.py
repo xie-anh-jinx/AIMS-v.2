@@ -118,5 +118,35 @@ def test_login_and_profile():
     print("PUT response:", put_res.json())
     print("SUCCESS: STUDENT Profile update OK!\n")
 
+    # 5. TEST SECURITY MANUALLY RESET USER PASSWORD BY PRODI
+    print("--- TESTING RESET USER PASSWORD BY PRODI ---")
+    # Login as prodi sastra prancis
+    prodi_login = requests.post(f"{base_url}/auth/login", data={"username": "prodi_sastra_prancis", "password": "password123"})
+    prodi_token = prodi_login.json()["access_token"]
+    prodi_headers = {"Authorization": f"Bearer {prodi_token}"}
+
+    # Reset student profile password to 'newpassword789'
+    reset_res = requests.post(f"{base_url}/auth/reset-user-password", json={
+        "target_username": "F051191055",
+        "new_password": "newpassword789"
+    }, headers=prodi_headers)
+    print("Reset status:", reset_res.status_code)
+    print("Reset response:", reset_res.json())
+    assert reset_res.status_code == 200
+
+    # Test login with new password - should be successful
+    stud_login_new = requests.post(f"{base_url}/auth/login", data={"username": "F051191055", "password": "newpassword789"})
+    print("Login with new password status:", stud_login_new.status_code)
+    assert stud_login_new.status_code == 200
+
+    # Set password back to default
+    reset_back_res = requests.post(f"{base_url}/auth/reset-user-password", json={
+        "target_username": "F051191055",
+        "new_password": "password123"
+    }, headers=prodi_headers)
+    print("Reset back status:", reset_back_res.status_code)
+    assert reset_back_res.status_code == 200
+    print("SUCCESS: RESET USER PASSWORD BY PRODI OK!\n")
+
 if __name__ == "__main__":
     test_login_and_profile()

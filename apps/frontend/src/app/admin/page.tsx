@@ -4,7 +4,7 @@ import React, { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { 
   Users, AlertTriangle, Settings, LogOut, ChevronRight, Activity, Database,
-  Bell, Shield, Server, Eye, Search, X, Trash, User, Edit2
+  Bell, Shield, Server, Eye, Search, X, Trash, User, Edit2, RefreshCw
 } from 'lucide-react';
 import { 
   PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, 
@@ -233,6 +233,31 @@ export default function AdminDashboard() {
       console.error(e);
     } finally {
       setTranscriptLoading(false);
+    }
+  };
+
+  const handleResetUserPassword = async (username: string) => {
+    const confirmReset = window.confirm(`Apakah Anda yakin ingin mereset password untuk user ${username} kembali ke default ("password123")?`);
+    if (!confirmReset) return;
+    
+    try {
+      const res = await fetch(`${API_URL}/auth/reset-user-password`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...authHeaders() },
+        body: JSON.stringify({
+          target_username: username,
+          new_password: "password123"
+        })
+      });
+      if (res.ok) {
+        alert(`Sandi untuk user ${username} berhasil disetel kembali ke "password123"!`);
+      } else {
+        const data = await res.json();
+        alert(data.detail || "Gagal mereset sandi.");
+      }
+    } catch (e) {
+      console.error(e);
+      alert("Gagal mereset sandi.");
     }
   };
 
@@ -728,9 +753,17 @@ export default function AdminDashboard() {
                           <span className={`inline-flex px-2 py-0.5 rounded text-[11px] font-medium border ${getStatusBadge(s.status)}`}>{s.status}</span>
                         </td>
                         <td className="py-3.5 px-5">
-                          <button onClick={() => openTranscript(s)} className="text-xs bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 px-3 py-1.5 rounded-lg border border-blue-500/10 flex items-center gap-1.5 transition">
-                            <Eye size={12} /> Lihat Transkrip
-                          </button>
+                          <div className="flex gap-2">
+                            <button onClick={() => openTranscript(s)} className="text-xs bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 px-3 py-1.5 rounded-lg border border-blue-500/10 flex items-center gap-1.5 transition">
+                              <Eye size={12} /> Lihat Transkrip
+                            </button>
+                            <button 
+                              onClick={() => handleResetUserPassword(s.nim)} 
+                              className="text-xs bg-red-500/10 hover:bg-red-500/20 text-red-400 px-3 py-1.5 rounded-lg border border-red-500/10 flex items-center gap-1.5 transition font-semibold"
+                            >
+                              <RefreshCw size={12} /> Reset Sandi
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     ))}

@@ -56,16 +56,25 @@ export class DatabaseAdapter {
     async upsertAcademicRecord(studentDbId, ipk, total_credits) {
         const client = await this.pool.connect();
         try {
-            const semesterAktif = 5; 
-            const query = `
-                INSERT INTO academic_records (student_id, semester, ipk, sks, status)
-                VALUES ($1, $2, $3, $4, 'TEREKAM')
-                ON CONFLICT (id) DO NOTHING
-                RETURNING id;
-            `;
-            await client.query(query, [studentDbId, semesterAktif, ipk, total_credits]);
+            // Ambil semester aktif mahasiswa
+            const res = await client.query('SELECT semester FROM students WHERE id = $1', [studentDbId]);
+            const semesterAktif = res.rows[0]?.semester || 5;
+            
+            // Check jika data sudah ada untuk student_id dan semester tersebut
+            const checkQuery = `SELECT id FROM academic_records WHERE student_id = $1 AND semester = $2`;
+            const existing = await client.query(checkQuery, [studentDbId, semesterAktif]);
+            
+            if (existing.rows.length > 0) {
+                const updateQuery = `UPDATE academic_records SET ipk = $1, sks = $2 WHERE id = $3`;
+                await client.query(updateQuery, [ipk, total_credits, existing.rows[0].id]);
+                this.logger.debug(`[DB] Updated Academic Record for Student ID ${studentDbId} (Semester: ${semesterAktif})`);
+            } else {
+                const insertQuery = `INSERT INTO academic_records (student_id, semester, ipk, sks, status) VALUES ($1, $2, $3, $4, 'TEREKAM')`;
+                await client.query(insertQuery, [studentDbId, semesterAktif, ipk, total_credits]);
+                this.logger.debug(`[DB] Inserted Academic Record for Student ID ${studentDbId} (Semester: ${semesterAktif})`);
+            }
         } catch (error) {
-            this.logger.warn(`[DB] Academic Record insert terlewati: ${error.message}`);
+            this.logger.warn(`[DB] Academic Record insert/update terlewati: ${error.message}`);
         } finally {
             client.release();
         }
@@ -160,6 +169,24 @@ export class DatabaseAdapter {
         } catch (e) {
             this.logger.error(`[DB] Error Assign Advisor to ${nim}: ${e.message}`);
             throw e;
+        } finally {
+            client.release();
+        }
+    }
+
+    async getStudentNimsWithGrades() {
+        const client = await this.pool.connect();
+        try {
+            const query = `
+                SELECT DISTINCT s.nim 
+                FROM students s 
+                JOIN grades g ON s.id = g.student_id;
+            `;
+            const res = await client.query(query);
+            return new Set(res.rows.map(r => r.nim));
+        } catch (e) {
+            this.logger.error(`[DB] Error fetching student nims with grades: ${e.message}`);
+            return new Set();
         } finally {
             client.release();
         }

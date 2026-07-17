@@ -171,6 +171,8 @@ def get_admin_notes(db: Session = Depends(get_db), current_user: User = Depends(
             "id": note.id,
             "date": note.date.strftime("%d %b %Y, %H:%M"),
             "type": note.type,
+            "status": note.status,
+            "notes": note.notes,
         })
     return res
 

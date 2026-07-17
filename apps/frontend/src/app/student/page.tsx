@@ -1,8 +1,8 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { BookOpen, TrendingUp, Award, Calendar, Bell, LogOut, ChevronRight, AlertTriangle, CheckCircle, MessageSquare, Edit2, Trash, User } from 'lucide-react';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { Menu, BookOpen, TrendingUp, Award, Calendar, LogOut, ChevronRight, MessageSquare, Edit2, Trash, User, Bell, AlertTriangle, CheckCircle } from 'lucide-react';
+import {LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer} from 'recharts';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
@@ -33,10 +33,12 @@ interface StudentData {
 }
 
 export default function StudentDashboard() {
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [student, setStudent] = useState<StudentData | null>(null);
   const [records, setRecords] = useState<AcademicRecord[]>([]);
   const [transcript, setTranscript] = useState<any[]>([]);
   const [consultations, setConsultations] = useState<any[]>([]);
+  const [neosiaStatus, setNeosiaStatus] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('Dashboard');
   const [expandedRecordId, setExpandedRecordId] = useState<number | null>(null);
@@ -77,6 +79,12 @@ export default function StudentDashboard() {
           if (consRes.ok) {
             const consData = await consRes.json();
             setConsultations(consData);
+          }
+
+          const neoRes = await fetch(`${API_URL}/students/${nim}/neosia-status`, { headers });
+          if (neoRes.ok) {
+            const neoData = await neoRes.json();
+            setNeosiaStatus(neoData);
           }
         }
       } catch {
@@ -215,7 +223,8 @@ export default function StudentDashboard() {
   return (
     <div className="flex min-h-screen">
       {/* Sidebar */}
-      <aside className="w-64 glass-sidebar p-6 flex flex-col fixed h-full z-20">
+      {mobileMenuOpen && <div className="fixed inset-0 bg-black/50 z-30 md:hidden" onClick={() => setMobileMenuOpen(false)} />}
+      <aside className={`w-64 glass-sidebar p-6 flex flex-col fixed h-full z-40 transition-transform duration-300 ${mobileMenuOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"}`}>
         <div className="mb-8">
           <div className="flex flex-col items-center justify-center text-center mb-1">
             <div className="w-20 h-20 rounded-xl overflow-hidden bg-gradient-to-tr from-slate-700 to-slate-800 border border-slate-600 mb-3 flex items-center justify-center text-white">
@@ -280,8 +289,9 @@ export default function StudentDashboard() {
       </aside>
 
       {/* Main Content */}
-      <main className="flex-1 ml-64 p-8 overflow-y-auto w-full">
+      <main className="flex-1 md:ml-64 p-4 md:p-8 overflow-y-auto w-full">
         <div className="max-w-6xl mx-auto">
+          <div className="md:hidden flex items-center mb-6"><button onClick={() => setMobileMenuOpen(true)} className="text-slate-300 hover:text-white p-2 -ml-2"><Menu size={24} /></button></div>
           {/* Header */}
           <div className="mb-8">
             <h1 className="text-2xl font-bold text-white">
@@ -295,7 +305,7 @@ export default function StudentDashboard() {
           {activeTab === 'Dashboard' && (
             <div className="space-y-6 flex flex-col md:w-full">
               {/* Stats Cards */}
-              <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 {[
                   { label: 'IPK Terkini', value: latestRecord?.ipk?.toFixed(2) || '-', icon: Award, color: 'blue', sub: 'Indeks Prestasi Kumulatif' },
                   { label: 'IPS Semester Ini', value: latestRecord?.ips?.toFixed(2) || '-', icon: TrendingUp, color: 'purple', sub: 'Indeks Prestasi Semester' },
@@ -391,7 +401,7 @@ export default function StudentDashboard() {
                 </button>
               </div>
               <div className="overflow-x-auto">
-                <table className="w-full text-left text-sm text-slate-400 border-collapse">
+                <div className="overflow-x-auto w-full"><table className="w-full text-left text-sm min-w-[700px] text-slate-400 border-collapse">
                   <thead className="bg-slate-800/50 text-slate-300 border-y border-white/5">
                     <tr>
                       <th className="py-3 px-4 font-semibold">Semester</th>
@@ -448,7 +458,7 @@ export default function StudentDashboard() {
                       </React.Fragment>
                     ))}
                   </tbody>
-                </table>
+                </table></div>
               </div>
             </div>
           )}
@@ -494,47 +504,65 @@ export default function StudentDashboard() {
               </div>
             </div>
           )}
-
+ 
           {activeTab === 'Pengingat' && (
             <div className="glass-panel p-6">
-              <h2 className="text-xl font-bold text-white mb-6">Pusat Notifikasi AIMS</h2>
+              <h2 className="text-xl font-bold text-white mb-6">Pusat Notifikasi AIMS (NeoSIA)</h2>
               <div className="space-y-4">
-                {latestRecord?.status === 'HIGH_RISK' && (
-                  <div className="flex items-start gap-4 p-5 rounded-2xl bg-red-500/10 border border-red-500/20 shadow-[0_0_15px_rgba(239,68,68,0.05)]">
-                    <div className="p-2 bg-red-500/20 rounded-full text-red-400 shrink-0 mt-1">
-                      <AlertTriangle size={24} />
+                {/* 1. Status SPP */}
+                {neosiaStatus ? (
+                  neosiaStatus.sudah_bayar ? (
+                    <div className="flex items-start gap-4 p-5 rounded-2xl bg-green-500/10 border border-green-500/20 shadow-[0_0_15px_rgba(34,197,94,0.05)]">
+                      <div className="p-2 bg-green-500/20 rounded-full text-green-400 shrink-0 mt-1">
+                        <CheckCircle size={24} />
+                      </div>
+                      <div>
+                        <h4 className="text-lg font-bold text-green-400 mb-1">Status Pembayaran SPP: Lunas</h4>
+                        <p className="text-slate-300 text-sm">Pembayaran SPP Anda untuk semester berjalan telah lunas dan terverifikasi di NeoSIA. Anda dapat mengisi/mengubah KRS.</p>
+                      </div>
                     </div>
-                    <div>
-                      <h4 className="text-lg font-bold text-red-400 mb-1">Peringatan Kritis: LOW_IPK</h4>
-                      <p className="text-slate-300 text-sm mb-3">IPK Terkini Anda berada di bawah standar kelulusan minimal (2.00). Ini dapat memengaruhi status beasiswa dan kelulusan Anda secara permanen.</p>
-                      <button className="px-4 py-2 bg-red-500 hover:bg-red-400 text-white text-sm font-semibold rounded-lg transition-colors">
-                        Hubungi Dosen PA (WA)
-                      </button>
+                  ) : (
+                    <div className="flex items-start gap-4 p-5 rounded-2xl bg-red-500/10 border border-red-500/20 shadow-[0_0_15px_rgba(239,68,68,0.05)]">
+                      <div className="p-2 bg-red-500/20 rounded-full text-red-400 shrink-0 mt-1">
+                        <AlertTriangle size={24} />
+                      </div>
+                      <div>
+                        <h4 className="text-lg font-bold text-red-400 mb-1">Tagihan Pembayaran SPP Aktif</h4>
+                        <p className="text-slate-300 text-sm">Status SPP Anda belum terbayar di NeoSIA. Silakan lakukan pembayaran agar hak registrasi & pengisian KRS Anda terbuka pada portal NeoSIA.</p>
+                      </div>
                     </div>
-                  </div>
+                  )
+                ) : (
+                  <div className="text-center py-6 text-slate-500 text-sm border border-dashed border-white/10 rounded-xl bg-slate-800/10">Memuat status pembayaran...</div>
                 )}
 
-                <div className="flex items-start gap-4 p-5 rounded-2xl bg-slate-800/50 border border-white/5">
-                  <div className="p-2 bg-blue-500/20 rounded-full text-blue-400 shrink-0 mt-1">
-                    <CheckCircle size={24} />
-                  </div>
-                  <div>
-                    <h4 className="text-lg font-bold text-white mb-1">Pengisian KRS Berhasil Terverifikasi</h4>
-                    <p className="text-slate-400 text-sm">Dosen Pendamping Akademik Anda telah menyetujui seluruh pengambilan KRS mata kuliah periode ini.</p>
-                    <p className="text-xs text-slate-500 mt-2">Diterima: 3 hari yang lalu</p>
-                  </div>
-                </div>
-
-                <div className="flex items-start gap-4 p-5 rounded-2xl bg-slate-800/50 border border-white/5">
-                  <div className="p-2 bg-purple-500/20 rounded-full text-purple-400 shrink-0 mt-1">
-                    <Bell size={24} />
-                  </div>
-                  <div>
-                    <h4 className="text-lg font-bold text-white mb-1">Jadwal Kuliah Pengganti</h4>
-                    <p className="text-slate-400 text-sm">Mata kuliah "Bahasa Prancis Menengah" dijadwalkan ulang ke Hari Jumat, 14:00 WIB, Ruang C.302.</p>
-                    <p className="text-xs text-slate-500 mt-2">Diterima: 1 minggu yang lalu</p>
-                  </div>
-                </div>
+                {/* 2. Status KRS */}
+                {neosiaStatus ? (
+                  neosiaStatus.status_krs === 'SUDAH_KRS' ? (
+                    <div className="flex items-start gap-4 p-5 rounded-2xl bg-green-500/10 border border-green-500/20 shadow-[0_0_15px_rgba(34,197,94,0.05)]">
+                      <div className="p-2 bg-green-500/20 rounded-full text-green-400 shrink-0 mt-1">
+                        <CheckCircle size={24} />
+                      </div>
+                      <div>
+                        <h4 className="text-lg font-bold text-green-400 mb-1">Status KRS: Disetujui / Diisi</h4>
+                        <p className="text-slate-300 text-sm">Rencana Studi (KRS) Anda semester {neosiaStatus.tahun_ajaran} ({neosiaStatus.semester_jenis}) telah diinput dan diverifikasi oleh Dosen Wali.</p>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="flex items-start gap-4 p-5 rounded-2xl bg-yellow-500/15 border border-yellow-500/20 shadow-[0_0_15px_rgba(234,179,8,0.05)]">
+                      <div className="p-2 bg-yellow-500/20 rounded-full text-yellow-400 shrink-0 mt-1">
+                        <AlertTriangle size={24} />
+                      </div>
+                      <div>
+                        <h4 className="text-lg font-bold text-yellow-400 mb-1">Status KRS: Belum Selesai</h4>
+                        <p className="text-slate-300 text-sm font-semibold">Anda belum menyelesaikan atau menyimpan permanen KRS Anda di NeoSIA untuk semester {neosiaStatus.tahun_ajaran} ({neosiaStatus.semester_jenis}).</p>
+                        <p className="text-slate-400 text-xs mt-1">Segera hubungi Dosen PA Anda jika memerlukan konsultasi mata kuliah.</p>
+                      </div>
+                    </div>
+                  )
+                ) : (
+                  <div className="text-center py-6 text-slate-500 text-sm border border-dashed border-white/10 rounded-xl bg-slate-800/10">Memuat status rencana studi (KRS)...</div>
+                )}
               </div>
             </div>
           )}

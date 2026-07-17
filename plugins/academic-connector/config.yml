@@ -8,30 +8,30 @@ authStrategy: "hybrid" # Options: "hybrid", "api_key"
 database_url: "${AIMS_DB_URL}"
 
 accounts:
-  - id: "fib_sas_prancis"
-    username: "${ENV_PRODI_FRA_USER}"
-    password: "${ENV_PRODI_FRA_PASS}"
-    program_studi: "Sastra Prancis"
-    
-  - id: "fib_pariwisata"
-    username: "${ENV_PRODI_PAR_USER}"
-    password: "${ENV_PRODI_PAR_PASS}"
-    program_studi: "Pariwisata"
-
-  - id: "fib_sas_jepang"
-    username: "${ENV_PRODI_JEP_USER}"
-    password: "${ENV_PRODI_JEP_PASS}"
-    program_studi: "Sastra Jepang"
-    
-  - id: "fib_sas_daerah"
-    username: "${ENV_PRODI_DAE_USER}"
-    password: "${ENV_PRODI_DAE_PASS}"
-    program_studi: "Sastra Daerah"
-    
-  - id: "fib_ilmu_sejarah"
-    username: "${ENV_PRODI_SEJ_USER}"
-    password: "${ENV_PRODI_SEJ_PASS}"
-    program_studi: "Ilmu Sejarah"
+  # - id: "fib_sas_prancis"
+  #   username: "${ENV_PRODI_FRA_USER}"
+  #   password: "${ENV_PRODI_FRA_PASS}"
+  #   program_studi: "Sastra Prancis"
+  #   
+  # - id: "fib_pariwisata"
+  #   username: "${ENV_PRODI_PAR_USER}"
+  #   password: "${ENV_PRODI_PAR_PASS}"
+  #   program_studi: "Pariwisata"
+  # 
+  # - id: "fib_sas_jepang"
+  #   username: "${ENV_PRODI_JEP_USER}"
+  #   password: "${ENV_PRODI_JEP_PASS}"
+  #   program_studi: "Sastra Jepang"
+  #   
+  # - id: "fib_sas_daerah"
+  #   username: "${ENV_PRODI_DAE_USER}"
+  #   password: "${ENV_PRODI_DAE_PASS}"
+  #   program_studi: "Sastra Daerah"
+  #   
+  # - id: "fib_ilmu_sejarah"
+  #   username: "${ENV_PRODI_SEJ_USER}"
+  #   password: "${ENV_PRODI_SEJ_PASS}"
+  #   program_studi: "Ilmu Sejarah"
 
   - id: "fib_superadmin"
     username: "F_7371125410970003"

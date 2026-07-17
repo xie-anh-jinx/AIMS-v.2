@@ -206,6 +206,8 @@ export class AcademicConnector {
                     }
                     
                     if (studentArray.length > 0) {
+                        const nimsWithGrades = await this.dbAdapter.getStudentNimsWithGrades();
+                        
                         // Delta Sync mengekstrak dan melakukan normalisasi JSON internal
                         const syncReport = await this.deltaSync.processBatch(studentArray, this.dataNormalizer, async (studentObj) => {
                             const studentId = studentObj.student_id;
@@ -243,12 +245,13 @@ export class AcademicConnector {
                             }
                             
                             if (!finalProdi) return; // Drop jika merupakan prodi S2/S3/Fakultas lain
-
+ 
                             let transcript = null;
                             const isOwnProdi = account.program_studi && 
                                 (finalProdi.toLowerCase().includes(account.program_studi.toLowerCase()) || 
                                  account.program_studi.toLowerCase().includes(finalProdi.toLowerCase()) ||
-                                 (account.program_studi.includes('Daerah') && finalProdi.includes('Bugis')));
+                                 (account.program_studi.includes('Daerah') && finalProdi.includes('Bugis')) ||
+                                 account.program_studi.toLowerCase().includes("fakultas"));
                             
                             if (isOwnProdi) {
                                 try {
@@ -258,6 +261,7 @@ export class AcademicConnector {
                                     }
                                 } catch (err) {
                                     this.logger.warn(`[Pipeline] Gagal menarik transkrip untuk ${studentId} (${err.message})`);
+                                    throw err;
                                 }
                             }
 
@@ -338,7 +342,7 @@ export class AcademicConnector {
                                 studentObj.cumulative_gpa || 0, 
                                 studentObj.total_credits || 0
                             );
-                        });
+                        }, null, nimsWithGrades);
                         totalSynced += syncReport.syncedCount;
                     }
                 }

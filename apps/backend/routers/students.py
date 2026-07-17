@@ -75,14 +75,23 @@ def get_student(nim: str, db: Session = Depends(get_db), current_user: User = De
     return student
 
 @router.get("/{nim}/transcript", response_model=List[GradeResponse])
-def get_student_transcript(nim: str, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+def get_student_transcript(
+    nim: str, 
+    force_sync: bool = False,
+    db: Session = Depends(get_db), 
+    current_user: User = Depends(get_current_user)
+):
     student = db.query(Student).filter(Student.nim == nim).first()
     if not student:
         raise HTTPException(status_code=404, detail="Student not found")
     check_student_access(student, current_user, db)
 
+    # Check if we already have cache in local DB
+    has_grades = db.query(Grade).filter(Grade.student_id == student.id).first() is not None
+
     # --- Attempt Neosia API (real data source) and Sync DB ---
-    if NEOSIA_TOKEN:
+    # Only request Neosia API if we don't have grades yet or force_sync is requested
+    if NEOSIA_TOKEN and (not has_grades or force_sync):
         try:
             neosia_url = f"{NEOSIA_API_BASE}/api/admin/transkrip/getTranskripMahasiswa?nim={nim}"
             headers = {"Authorization": f"Bearer {NEOSIA_TOKEN}", "Accept": "application/json"}
@@ -91,7 +100,29 @@ def get_student_transcript(nim: str, db: Session = Depends(get_db), current_user
             if r.status_code == 200:
                 data = r.json()
                 transkrips = data.get("transkrips", [])
+                
+                # Update AcademicRecord immediately from Neosia payload
+                ipk_dict = data.get("current_indeks_prestasi", {})
+                real_ipk = float(ipk_dict.get("indeks_prestasi_kumulatif", 0.0) or 0.0)
+                
+                status_str = "Aman"
+                if real_ipk < 2.0: status_str = "HIGH_RISK"
+                elif real_ipk < 2.75: status_str = "Warning"
+                
+                valid_sks = sum(int(t.get("sks") or 0) for t in transkrips if t.get("is_used") == 1)
+                latest_rec = db.query(AcademicRecord).filter(AcademicRecord.student_id == student.id).first()
+                if latest_rec:
+                    latest_rec.ipk = real_ipk
+                    latest_rec.sks = valid_sks
+                    latest_rec.status = status_str
+                else:
+                    new_rec = AcademicRecord(student_id=student.id, semester=student.semester or 2, ipk=real_ipk, ips=real_ipk, sks=valid_sks, status=status_str)
+                    db.add(new_rec)
+                
                 if transkrips:
+                    # Wipe dirty polluted grades from old syncing bug
+                    db.query(Grade).filter(Grade.student_id == student.id).delete()
+                    
                     for t in transkrips:
                         if t.get("is_used") != 1: continue
                         
@@ -131,24 +162,18 @@ def get_student_transcript(nim: str, db: Session = Depends(get_db), current_user
                                 except:
                                     pass
 
-                        # 2. Upsert Grade
-                        grade = db.query(Grade).filter(Grade.student_id == student.id, Grade.course_id == course.id).first()
+                        # 2. Insert Valid Grade
                         val_huruf = t.get("nilai_huruf", "-")
                         val_angka = float(t.get("nilai_angka") or 0)
                         
-                        if not grade:
-                            grade = Grade(
-                                student_id=student.id,
-                                course_id=course.id,
-                                semester=calculated_sem,
-                                grade=val_huruf,
-                                bobot=val_angka
-                            )
-                            db.add(grade)
-                        else:
-                            grade.semester = calculated_sem
-                            grade.grade = val_huruf
-                            grade.bobot = val_angka
+                        grade = Grade(
+                            student_id=student.id,
+                            course_id=course.id,
+                            semester=calculated_sem,
+                            grade=val_huruf,
+                            bobot=val_angka
+                        )
+                        db.add(grade)
                             
                     db.commit() # Save all synced data to postgres
         except Exception as e:
@@ -165,44 +190,7 @@ def get_student_records(nim: str, db: Session = Depends(get_db), current_user: U
     if not student:
         raise HTTPException(status_code=404, detail="Student not found")
     check_student_access(student, current_user, db)
-    
-    # Calculate REAL SKS from grades table (same source as transcript detail view)
-    real_sks_result = db.query(func.sum(Course.sks)).join(
-        Grade, Grade.course_id == Course.id
-    ).filter(Grade.student_id == student.id).scalar()
-    real_sks = int(real_sks_result or 0)
-    
-    # Calculate REAL IPK from grades table
-    weighted_sum = db.query(func.sum(Grade.bobot * Course.sks)).join(
-        Course, Grade.course_id == Course.id
-    ).filter(Grade.student_id == student.id).scalar()
-    real_ipk = round(float(weighted_sum) / real_sks, 2) if real_sks > 0 else None
-
     records = db.query(AcademicRecord).filter(AcademicRecord.student_id == student.id).order_by(AcademicRecord.semester.desc()).all()
-    
-    # Sync AcademicRecord with real data if grades exist
-    if real_sks > 0 and records:
-        # Update first/latest record with real calculated values
-        latest = records[0]
-        if latest.sks != real_sks or (real_ipk and abs(latest.ipk - real_ipk) > 0.01):
-            latest.sks = real_sks
-            if real_ipk:
-                latest.ipk = real_ipk
-            db.commit()
-            db.refresh(latest)
-    elif real_sks > 0 and not records:
-        # Create a record if none exist
-        new_r = AcademicRecord(
-            student_id=student.id,
-            semester=student.semester or 2,
-            sks=real_sks,
-            ipk=real_ipk or 0.0,
-            ips=real_ipk or 0.0,
-            status="AKTIF"
-        )
-        db.add(new_r)
-        db.commit()
-        records = [new_r]
 
     return records
 
@@ -291,3 +279,127 @@ def update_student_profile(nim: str, payload: ProfileUpdateRequest, db: Session 
 
     db.commit()
     return {"message": "Profil berhasil diperbarui"}
+
+@router.get("/{nim}/neosia-status")
+def get_student_neosia_status_endpoint(nim: str, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    student = db.query(Student).filter(Student.nim == nim).first()
+    if not student:
+        raise HTTPException(status_code=404, detail="Student not found")
+    check_student_access(student, current_user, db)
+
+    if not NEOSIA_TOKEN:
+        return {
+            "nim": student.nim,
+            "nama": student.nama,
+            "status_krs": "BELUM_KRS",
+            "sudah_bayar": False,
+            "nominal_spp": 2000000,
+            "tahun_ajaran": "2026/2027",
+            "semester_jenis": "ganjil"
+        }
+
+    try:
+        # Standardize matching name
+        std_prodi = student.prodi.upper().strip() if student.prodi else ""
+        if std_prodi and not std_prodi.endswith("- S1") and not std_prodi.endswith("- S2") and not std_prodi.endswith("- S3"):
+            std_prodi = f"{std_prodi} - S1"
+
+        url_ps = f"{NEOSIA_API_BASE}/api/admin/prodi_semester?filters[is_used]=1"
+        headers = {"Authorization": f"Bearer {NEOSIA_TOKEN}", "Accept": "application/json"}
+        
+        with httpx.Client(timeout=15) as client:
+            r_ps = client.get(url_ps, headers=headers)
+            if r_ps.status_code != 200:
+                raise HTTPException(status_code=502, detail="Failed to fetch active semesters from Neosia")
+            
+            ps_arr = r_ps.json().get("prodiSemesters") or r_ps.json().get("data") or []
+            matched_ps = None
+            for ps in ps_arr:
+                p_name = (ps.get("prodi") or {}).get("nama_resmi", "").upper()
+                if std_prodi in p_name or p_name in std_prodi:
+                    matched_ps = ps
+                    break
+            
+            if not matched_ps:
+                for ps in ps_arr:
+                    p_name = (ps.get("prodi") or {}).get("nama_resmi", "").upper()
+                    if any(w in p_name for w in std_prodi.split() if len(w) > 3):
+                        matched_ps = ps
+                        break
+
+            if not matched_ps:
+                id_prodi = 33
+                id_prodi_semester = 3850
+                sem_year = "2026/2027"
+                sem_term = "ganjil"
+            else:
+                id_prodi = matched_ps["id_prodi"]
+                id_prodi_semester = matched_ps["id"]
+                sem_year = matched_ps.get("semester", {}).get("tahun_ajaran", "2026/2027")
+                sem_term = matched_ps.get("semester", {}).get("jenis", "ganjil")
+
+            # Query status_krs
+            url_krs = f"{NEOSIA_API_BASE}/api/admin/mahasiswa/status_krs?filters[id_prodi]={id_prodi}&filters[angkatan]={student.angkatan or 2024}&filters[id_prodi_semester]={id_prodi_semester}"
+            r_krs = client.get(url_krs, headers=headers)
+            if r_krs.status_code != 200:
+                raise HTTPException(status_code=502, detail="Failed to fetch KRS status from Neosia")
+
+            krs_data = r_krs.json()
+            mahasiswas = krs_data.get("mahasiswas", {})
+            
+            sudah_krs = mahasiswas.get("sudah_krs", [])
+            belum_krs = mahasiswas.get("belum_krs", [])
+            
+            target_nim = student.nim.upper().strip()
+            found_mhs = None
+            status_krs = "BELUM_KRS"
+            
+            for m in sudah_krs:
+                m_info = m.get("mahasiswa") or m
+                if str(m_info.get("nim", "")).upper().strip() == target_nim:
+                    found_mhs = m_info
+                    status_krs = "SUDAH_KRS"
+                    break
+                    
+            if not found_mhs:
+                for m in belum_krs:
+                    m_info = m.get("mahasiswa") or m
+                    if str(m_info.get("nim", "")).upper().strip() == target_nim:
+                        found_mhs = m_info
+                        status_krs = "BELUM_KRS"
+                        break
+                        
+            if not found_mhs:
+                return {
+                    "nim": student.nim,
+                    "nama": student.nama,
+                    "status_krs": "BELUM_KRS",
+                    "sudah_bayar": False,
+                    "nominal_spp": 2000000,
+                    "tahun_ajaran": sem_year,
+                    "semester_jenis": sem_term
+                }
+
+            pay_info = found_mhs.get("statusPembayaran") or {}
+            sudah_bayar = pay_info.get("sudah_bayar") == 1
+            nominal = pay_info.get("nominal") or found_mhs.get("spp")
+            
+            return {
+                "nim": target_nim,
+                "nama": found_mhs.get("nama_mahasiswa"),
+                "status_krs": status_krs,
+                "sudah_bayar": sudah_bayar,
+                "nominal_spp": nominal,
+                "tahun_ajaran": sem_year,
+                "semester_jenis": sem_term
+            }
+    except Exception:
+        return {
+            "nim": student.nim,
+            "nama": student.nama,
+            "status_krs": "BELUM_KRS",
+            "sudah_bayar": False,
+            "nominal_spp": 2000000,
+            "tahun_ajaran": "2026/2027",
+            "semester_jenis": "ganjil"
+        }

@@ -1,15 +1,12 @@
 'use client';
 
 import React, { useEffect, useState, useCallback } from 'react';
-import { useRouter } from 'next/navigation';
+import {useRouter} from 'next/navigation';
 import { 
-  Users, AlertTriangle, Settings, LogOut, ChevronRight, Activity, Database,
+  Menu, Users, AlertTriangle, Settings, LogOut, ChevronRight, Activity, Database,
   Bell, Shield, Server, Eye, Search, X, Trash, User, Edit2, RefreshCw
 } from 'lucide-react';
-import { 
-  PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, 
-  ResponsiveContainer, Tooltip as RechartsTooltip, Legend 
-} from 'recharts';
+import {PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Tooltip as RechartsTooltip, Legend} from 'recharts';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
@@ -57,6 +54,7 @@ const getStatusBadge = (status: string) => {
 
 export default function AdminDashboard() {
   const router = useRouter();
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [semesterDist, setSemesterDist] = useState<ChartEntry[]>([]);
   const [statusDist, setStatusDist] = useState<ChartEntry[]>([]);
@@ -389,7 +387,8 @@ export default function AdminDashboard() {
       
       {/* ── Sidebar ─────────────────────────────────────────────────── */}
       {/* ── Sidebar ─────────────────────────────────────────────────── */}
-      <aside className="w-[260px] bg-[#111827] flex flex-col fixed h-full z-20 border-r border-[#1f2937]">
+      {mobileMenuOpen && <div className="fixed inset-0 bg-black/50 z-30 md:hidden" onClick={() => setMobileMenuOpen(false)} />}
+      <aside className={`w-[260px] bg-[#111827] flex flex-col fixed h-full z-40 border-r border-[#1f2937] transition-transform duration-300 ${mobileMenuOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"}`}>
         <div className="p-6 pb-6">
           <div className="flex flex-col items-center justify-center text-center mb-6">
             <div className="w-20 h-20 rounded-xl overflow-hidden bg-gradient-to-tr from-slate-700 to-slate-800 border border-slate-600 mb-3 flex items-center justify-center text-white">
@@ -444,9 +443,10 @@ export default function AdminDashboard() {
       </aside>
 
       {/* ── Main Content ─────────────────────────────────────────────── */}
-      <main className="flex-1 ml-[260px] p-8 overflow-y-auto">
+      <main className="flex-1 md:ml-[260px] p-4 md:p-8 overflow-y-auto w-full">
         <div className="max-w-[1200px] mx-auto w-full">
           
+          <div className="md:hidden flex items-center mb-6"><button onClick={() => setMobileMenuOpen(true)} className="text-slate-300 hover:text-white p-2 -ml-2"><Menu size={24} /></button></div>
           {/* Header */}
           <div className="flex items-start justify-between mb-8">
             <div>
@@ -473,7 +473,7 @@ export default function AdminDashboard() {
           {activeTab === 'Dashboard' && (
             <div className="space-y-6">
               {/* Stat Cards */}
-              <div className="grid grid-cols-2 lg:grid-cols-4 gap-5">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
                 {[
                   { label: 'Total Mahasiswa', value: stats?.total_students, icon: Database, color: 'blue' },
                   { label: 'Mahasiswa Aktif', value: stats?.total_active_students, icon: Activity, color: 'green' },
@@ -497,7 +497,7 @@ export default function AdminDashboard() {
               </div>
 
               {/* Charts */}
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                 {/* Pie: Status */}
                 <div className="bg-[#1e293b] rounded-xl p-6 border border-[#334155]">
                   <h3 className="text-sm font-semibold text-white mb-4">Status Mahasiswa</h3>
@@ -565,7 +565,7 @@ export default function AdminDashboard() {
                   <h3 className="text-sm font-semibold text-white">Mahasiswa Terbaru</h3>
                   <button onClick={() => setActiveTab('Data Mahasiswa')} className="text-xs text-blue-400 hover:text-blue-300 transition">Lihat Semua →</button>
                 </div>
-                <table className="w-full text-left text-sm">
+                <div className="overflow-x-auto w-full"><table className="w-full text-left text-sm min-w-[700px]">
                   <thead className="bg-[#0b1121]/50 border-b border-[#334155]">
                     <tr>
                       {['NIM','Nama','Program Studi','Semester','Status'].map(h => (
@@ -591,7 +591,7 @@ export default function AdminDashboard() {
                       </tr>
                     ))}
                   </tbody>
-                </table>
+                </table></div>
               </div>
             </div>
           )}
@@ -603,7 +603,7 @@ export default function AdminDashboard() {
                 <AlertTriangle size={18} className="text-red-400" />
                 <h2 className="text-[15px] font-semibold text-white">Analisis Profil Risiko Akademik</h2>
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
                 {[
                   { id: 'merah', label: 'Zona Merah (Kritis)', val: stats?.high_risk_students, sub: 'Mahasiswa dengan indikasi Drop Out tinggi (IPK < 2.0)', bg: 'bg-[#2c1316]', border: 'border-red-900/30', color: 'text-red-400', glow: 'bg-red-900/40' },
                   { id: 'kuning', label: 'Zona Kuning (Warning)', val: stats?.warning_students, sub: 'Performa akademik pas-pasan (IPK 2.0 - 2.74)', bg: 'bg-[#282111]', border: 'border-yellow-900/30', color: 'text-yellow-400', glow: 'bg-yellow-900/40' },
@@ -731,7 +731,7 @@ export default function AdminDashboard() {
               </div>
 
               <div className="overflow-x-auto">
-                <table className="w-full text-left text-sm">
+                <div className="overflow-x-auto w-full"><table className="w-full text-left text-sm min-w-[700px]">
                   <thead className="bg-[#1e293b] border-b border-[#334155]">
                     <tr>
                       {['NIM','Nama Lengkap','Program Studi','Angkatan','Semester','Status Terkini','Aksi'].map(h => (
@@ -768,7 +768,7 @@ export default function AdminDashboard() {
                       </tr>
                     ))}
                   </tbody>
-                </table>
+                </table></div>
               </div>
               <div className="flex justify-between items-center p-4 border-t border-[#334155] bg-[#1a2333]">
                 <div className="text-xs text-slate-500">
@@ -817,7 +817,7 @@ export default function AdminDashboard() {
               ) : transcriptData.length === 0 ? (
                 <div className="py-12 text-center text-slate-500">Tidak ada data transkrip.</div>
               ) : (
-                <table className="w-full text-left text-sm">
+                <div className="overflow-x-auto w-full"><table className="w-full text-left text-sm min-w-[700px]">
                   <thead className="bg-[#1e293b] border border-[#334155]">
                     <tr>
                       <th className="py-2.5 px-4 text-xs text-slate-400 font-semibold border-b border-[#334155]">Semester</th>
@@ -842,7 +842,7 @@ export default function AdminDashboard() {
                       </tr>
                     ))}
                   </tbody>
-                </table>
+                </table></div>
               )}
             </div>
             {!transcriptLoading && transcriptData.length > 0 && (

@@ -36,6 +36,17 @@ def _classify_active_student(angkatan: int, current_year: int = 2026) -> str:
     else:
         return "hijau"  # Belum melewati batas normal
 
+def get_associated_prodi_names(prodi_name: str) -> List[str]:
+    name_lower = prodi_name.lower().strip()
+    aliases = [prodi_name]
+    if "mandarin" in name_lower or "tiongkok" in name_lower:
+        aliases.extend(["Bahasa Mandarin & kebudayaan Tiongkok", "Sastra Mandarin"])
+    elif "bugis" in name_lower or "daerah" in name_lower:
+        aliases.extend(["Sastra Bugis Makassar", "Sastra Daerah"])
+    elif "sejarah" in name_lower:
+        aliases.extend(["Sejarah", "Ilmu Sejarah"])
+    return list(set(aliases))
+
 @router.get("/overview")
 def get_overview(db: Session = Depends(get_db), prodi_admin: ProdiAdmin = Depends(get_prodi_user)):
     students = db.query(Student).filter(Student.prodi == prodi_admin.prodi_name).all()
@@ -56,10 +67,10 @@ def get_overview(db: Session = Depends(get_db), prodi_admin: ProdiAdmin = Depend
         if not student or student.status == "Lulus":
             continue
             
-        if r.status == "HIGH_RISK" or r.ipk < IPK_HIGH_RISK: high_risk += 1
-        elif r.status == "Warning" or (r.ipk < IPK_WARNING and r.status != "HIGH_RISK"): warning += 1
-        else: safe += 1
-        
+        students_with_rec.add(uid)
+        if r.status == "HIGH_RISK": high_risk += 1
+        elif r.status == "Warning": warning += 1
+        elif r.status == "Aman": safe += 1
     # Analyze active students without AcademicRecord
     for s in students:
         if s.status == "Aktif" and s.id not in students_with_rec:
@@ -74,7 +85,7 @@ def get_overview(db: Session = Depends(get_db), prodi_admin: ProdiAdmin = Depend
         "high_risk_students": high_risk,
         "warning_students": warning,
         "safe_students": safe,
-        "total_advisors": db.query(Advisor).filter(Advisor.prodi == prodi_admin.prodi_name).count()
+        "total_advisors": db.query(Advisor).filter(Advisor.prodi.in_(get_associated_prodi_names(prodi_admin.prodi_name))).count()
     }
 
 @router.get("/students")
@@ -99,7 +110,7 @@ def get_prodi_students(
 
 @router.get("/advisors")
 def get_prodi_advisors(db: Session = Depends(get_db), prodi_admin: ProdiAdmin = Depends(get_prodi_user)):
-    advisors = db.query(Advisor).filter(Advisor.prodi == prodi_admin.prodi_name).all()
+    advisors = db.query(Advisor).filter(Advisor.prodi.in_(get_associated_prodi_names(prodi_admin.prodi_name))).all()
     results = []
     for adv in advisors:
         student_count = db.query(Student).filter(Student.advisor_id == adv.id).count()
@@ -164,19 +175,17 @@ def get_prodi_risk_students(
     if zone == "merah":
         query = query.filter(
             Student.status != "Lulus",
-            or_(AcademicRecord.status == "HIGH_RISK", AcademicRecord.ipk < IPK_HIGH_RISK)
+            AcademicRecord.status == "HIGH_RISK"
         )
     elif zone == "kuning":
         query = query.filter(
             Student.status != "Lulus",
-            AcademicRecord.status != "HIGH_RISK",
-            or_(AcademicRecord.status == "Warning", (AcademicRecord.ipk >= IPK_HIGH_RISK) & (AcademicRecord.ipk < IPK_WARNING))
+            AcademicRecord.status == "Warning"
         )
     elif zone == "hijau":
         query = query.filter(
-            AcademicRecord.status != "HIGH_RISK",
-            AcademicRecord.status != "Warning",
-            or_(AcademicRecord.status == "Aman", AcademicRecord.ipk >= IPK_WARNING)
+            Student.status != "Lulus",
+            AcademicRecord.status == "Aman"
         )
         
     results = query.all()
@@ -242,7 +251,7 @@ def create_prodi_note(
     db: Session = Depends(get_db),
     prodi_admin: ProdiAdmin = Depends(get_prodi_user)
 ):
-    advisor = db.query(Advisor).filter(Advisor.id == payload.advisor_id, Advisor.prodi == prodi_admin.prodi_name).first()
+    advisor = db.query(Advisor).filter(Advisor.id == payload.advisor_id, Advisor.prodi.in_(get_associated_prodi_names(prodi_admin.prodi_name))).first()
     if not advisor:
         raise HTTPException(status_code=400, detail="Penasihat Akademik tidak ditemukan di prodi ini")
         
@@ -262,7 +271,7 @@ def get_sent_prodi_notes(
     prodi_admin: ProdiAdmin = Depends(get_prodi_user)
 ):
     notes = db.query(AdminNote, Advisor).join(Advisor, AdminNote.advisor_id == Advisor.id).filter(
-        Advisor.prodi == prodi_admin.prodi_name,
+        Advisor.prodi.in_(get_associated_prodi_names(prodi_admin.prodi_name)),
         AdminNote.is_archived_by_sender == False
     ).order_by(AdminNote.date.desc()).all()
     
@@ -286,7 +295,7 @@ def delete_prodi_note(
 ):
     note = db.query(AdminNote).join(Advisor, AdminNote.advisor_id == Advisor.id).filter(
         AdminNote.id == note_id,
-        Advisor.prodi == prodi_admin.prodi_name
+        Advisor.prodi.in_(get_associated_prodi_names(prodi_admin.prodi_name))
     ).first()
     if not note:
         raise HTTPException(status_code=404, detail="Catatan tidak ditemukan")

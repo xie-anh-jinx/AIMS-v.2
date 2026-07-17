@@ -1,8 +1,8 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { Users, AlertTriangle, TrendingDown, ClipboardList, LogOut, ChevronRight, Bell, BarChart2, Edit2, Trash, User } from 'lucide-react';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
+import {useState, useEffect} from 'react';
+import {  Users, AlertTriangle, TrendingDown, ClipboardList, LogOut, ChevronRight, Bell, BarChart2, Edit2, Trash, User , Menu, X } from 'lucide-react';
+import {BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell} from 'recharts';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
@@ -25,6 +25,7 @@ interface AcademicRecord {
 }
 
 export default function AdvisorDashboard() {
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [students, setStudents] = useState<Student[]>([]);
   const [records, setRecords] = useState<{ [nim: string]: AcademicRecord }>({});
   const [consultations, setConsultations] = useState<any[]>([]);
@@ -386,8 +387,9 @@ export default function AdvisorDashboard() {
       </aside>
 
       {/* Main */}
-      <main className="flex-1 ml-[280px] p-8 overflow-y-auto">
+      <main className="flex-1 md:ml-[280px] p-4 md:p-8 overflow-y-auto w-full">
         <div className="max-w-6xl mx-auto">
+          <div className="md:hidden flex items-center mb-6"><button onClick={() => setMobileMenuOpen(true)} className="text-slate-300 hover:text-white p-2 -ml-2"><Menu size={24} /></button></div>
           <div className="mb-8">
             <h1 className="text-2xl font-bold text-white">Dashboard <span className="bg-clip-text text-transparent bg-gradient-to-r from-purple-400 to-pink-400">Penasehat Akademik</span></h1>
             <p className="text-slate-400 text-sm mt-1">{activeNav === 'Mahasiswa Saya' ? 'Pantau perkembangan akademik mahasiswa bimbingan Anda' : `Mode: ${activeNav}`}</p>
@@ -396,7 +398,7 @@ export default function AdvisorDashboard() {
           {activeNav === 'Mahasiswa Saya' && (
             <div className="space-y-6">
               {/* Stats */}
-              <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 {[
                   { label: 'Total Mahasiswa Aktif', value: activeStudents.length, icon: Users, color: 'purple' },
                   { label: 'Perlu Perhatian', value: warning.length, icon: Bell, color: 'yellow' },
@@ -588,8 +590,21 @@ export default function AdvisorDashboard() {
                     </div>
                     <p className="text-xs text-red-400 mb-4 bg-red-500/10 p-2 rounded-lg inline-block">Menunggak 3 SKS Wajib, IPK &lt; 2.00</p>
                     <div className="flex gap-2">
-                      <button className="flex-1 bg-blue-600 hover:bg-blue-500 text-white text-xs font-medium py-2 rounded-lg transition">Jadwalkan Panggilan</button>
-                      <button className="bg-slate-700 hover:bg-slate-600 text-white text-xs font-medium px-4 py-2 rounded-lg transition">Detail Transkrip</button>
+                      <button 
+                        onClick={() => {
+                          setNoteForm({ nim: s.nim, type: 'Konsultasi Akademik', status: 'Warning', notes: '' });
+                          setShowNoteModal(true);
+                        }}
+                        className="flex-1 bg-blue-600 hover:bg-blue-500 text-white text-xs font-medium py-2 rounded-lg transition"
+                      >
+                        Jadwalkan Panggilan
+                      </button>
+                      <button 
+                        onClick={() => handleOpenTranscript(s)}
+                        className="bg-slate-700 hover:bg-slate-600 text-white text-xs font-medium px-4 py-2 rounded-lg transition"
+                      >
+                        Detail Transkrip
+                      </button>
                     </div>
                   </div>
                 ))}
@@ -752,12 +767,12 @@ export default function AdvisorDashboard() {
 
       {/* Modal Detail Transkrip */}
       {showTranscriptModal && selectedStudentForTranscript && (
-        <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-slate-800 rounded-2xl w-full max-w-2xl border border-white/10 overflow-hidden shadow-2xl flex flex-col max-h-[85vh]">
-            <div className="p-5 border-b border-white/5 flex justify-between items-center bg-slate-800/80 shrink-0">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#000000_cc] backdrop-blur-sm p-4">
+          <div className="bg-[#0f172a] border border-[#334155] rounded-xl w-full max-w-3xl flex flex-col max-h-[90vh] shadow-2xl">
+            <div className="flex justify-between items-center p-5 border-b border-[#334155]">
               <div>
-                <h3 className="font-bold text-white">Transkrip Nilai Akademik</h3>
-                <p className="text-xs text-slate-400">{selectedStudentForTranscript.nama} · {selectedStudentForTranscript.nim}</p>
+                <h3 className="text-lg font-bold text-white">Transkrip Akademik</h3>
+                <p className="text-sm text-slate-400">{selectedStudentForTranscript.nama} ({selectedStudentForTranscript.nim}) - {selectedStudentForTranscript.prodi}</p>
               </div>
               <button 
                 onClick={() => {
@@ -765,64 +780,67 @@ export default function AdvisorDashboard() {
                    setSelectedTranscript([]);
                    setSelectedStudentForTranscript(null);
                 }} 
-                className="text-slate-400 hover:text-white"
+                className="text-slate-400 hover:text-white transition"
               >
-                &times;
+                <X size={24} />
               </button>
             </div>
             
-            <div className="p-0 overflow-y-auto w-full border-b border-white/5">
+            <div className="p-5 overflow-y-auto flex-1">
               {loadingTranscript ? (
-                <div className="py-20 flex justify-center">
-                  <div className="w-8 h-8 flex border-4 border-purple-500/30 border-t-purple-500 rounded-full animate-spin"></div>
+                <div className="py-12 flex justify-center">
+                  <div className="w-8 h-8 border-4 border-slate-700 border-t-blue-500 rounded-full animate-spin"></div>
                 </div>
               ) : selectedTranscript.length === 0 ? (
-                <div className="py-10 text-center text-slate-400 text-sm">Tidak ada riwayat transkrip untuk mahasiswa ini.</div>
+                <div className="py-12 text-center text-slate-500">Tidak ada data transkrip.</div>
               ) : (
-                <table className="w-full text-left text-sm text-slate-400 border-collapse">
-                  <thead className="bg-slate-900/50 text-slate-300">
+                <div className="overflow-x-auto w-full"><table className="w-full text-left text-sm min-w-[700px]">
+                  <thead className="bg-[#1e293b] border border-[#334155]">
                     <tr>
-                      <th className="py-3 px-4 font-semibold">T.A</th>
-                      <th className="py-3 px-4 font-semibold">Mata Kuliah</th>
-                      <th className="py-3 px-4 font-semibold text-center">SKS</th>
-                      <th className="py-3 px-4 font-semibold text-center">Nilai</th>
+                      <th className="py-2.5 px-4 text-xs text-slate-400 font-semibold border-b border-[#334155]">Semester</th>
+                      <th className="py-2.5 px-4 text-xs text-slate-400 font-semibold border-b border-[#334155]">Kode MK</th>
+                      <th className="py-2.5 px-4 text-xs text-slate-400 font-semibold border-b border-[#334155]">Mata Kuliah</th>
+                      <th className="py-2.5 px-4 text-xs text-slate-400 font-semibold border-b border-[#334155] text-center">SKS</th>
+                      <th className="py-2.5 px-4 text-xs text-slate-400 font-semibold border-b border-[#334155] text-center">Nilai</th>
+                      <th className="py-2.5 px-4 text-xs text-slate-400 font-semibold border-b border-[#334155] text-center">Bobot</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-white/5">
-                    {selectedTranscript.map((t, i) => (
-                      <tr key={i} className="hover:bg-slate-800/50 transition">
-                        <td className="py-3 px-4 w-20">{t.semester || '-'}</td>
-                        <td className="py-3 px-4">
-                           <p className="text-white font-medium">{t.course?.nama || `Mata Kuliah ${t.course_id}`}</p>
+                  <tbody className="border border-[#334155]">
+                    {selectedTranscript.map((t, idx) => (
+                      <tr key={idx} className="border-b border-[#334155] hover:bg-[#1e293b]/50">
+                        <td className="py-2.5 px-4 text-slate-300">Sem {t.semester}</td>
+                        <td className="py-2.5 px-4 text-slate-400 font-mono text-xs">{t.course?.kode}</td>
+                        <td className="py-2.5 px-4 text-slate-200 font-medium">{t.course?.nama}</td>
+                        <td className="py-2.5 px-4 text-slate-400 text-center">{t.course?.sks}</td>
+                        <td className="py-2.5 px-4 text-center">
+                          <span className={`inline-flex items-center justify-center w-6 h-6 rounded font-semibold text-xs ${['A','A-'].includes(t.grade) ? 'bg-green-500/10 text-green-400' : ['B+','B','B-'].includes(t.grade) ? 'bg-blue-500/10 text-blue-400' : 'bg-red-500/10 text-red-400'}`}>{t.grade}</span>
                         </td>
-                        <td className="py-3 px-4 text-center">{t.course?.sks || '-'}</td>
-                        <td className="py-3 px-4 text-center">
-                          <span className={`font-bold ${['A','A-'].includes(t.grade) ? 'text-green-400' : ['B+','B','B-'].includes(t.grade) ? 'text-blue-400' : ['C+','C'].includes(t.grade) ? 'text-yellow-400' : 'text-red-400'}`}>
-                            {t.grade || '-'}
-                          </span>
-                        </td>
+                        <td className="py-2.5 px-4 text-slate-400 text-center">{t.bobot}</td>
                       </tr>
                     ))}
                   </tbody>
-                </table>
+                </table></div>
               )}
             </div>
             
-            <div className="p-4 flex flex-shrink-0 justify-between items-center bg-slate-900/50">
-               <div>
-                  <p className="text-xs text-slate-400">Total SKS Diambil: <span className="font-bold text-white">{selectedTranscript.reduce((acc, t) => acc + (t.course?.sks || 0), 0)} SKS</span></p>
-               </div>
-               <button 
-                onClick={() => {
-                  setShowTranscriptModal(false);
-                  setNoteForm({ ...noteForm, nim: selectedStudentForTranscript.nim });
-                  setShowNoteModal(true);
-                }}
-                className="text-xs font-semibold bg-purple-500/20 text-purple-400 hover:bg-purple-500 hover:text-white transition px-4 py-2 rounded-lg"
-               >
-                 Jadwalkan Konsultasi
-               </button>
-            </div>
+            {!loadingTranscript && selectedTranscript.length > 0 && (
+              <div className="bg-[#1e293b] p-4 border-t border-[#334155] flex justify-between items-center text-sm">
+                <div className="flex flex-col gap-0.5 text-slate-400">
+                  <span>Total SKS: <strong className="text-white">{selectedTranscript.reduce((acc, t) => acc + (t.course?.sks || 0), 0)} SKS</strong></span>
+                  <span>IPK Estimasi: <strong className="text-white">{(selectedTranscript.reduce((acc, t) => acc + (t.bobot * (t.course?.sks || 0)), 0) / Math.max(1, selectedTranscript.reduce((acc, t) => acc + (t.course?.sks || 0), 0))).toFixed(2)}</strong></span>
+                </div>
+                <button 
+                  onClick={() => {
+                    setShowTranscriptModal(false);
+                    setNoteForm({ ...noteForm, nim: selectedStudentForTranscript.nim });
+                    setShowNoteModal(true);
+                  }}
+                  className="text-xs font-semibold bg-purple-500/20 text-purple-400 hover:bg-purple-500 hover:text-white transition px-4 py-2.5 rounded-lg border border-purple-500/20"
+                >
+                  Jadwalkan Konsultasi
+                </button>
+              </div>
+            )}
           </div>
         </div>
       )}

@@ -48,7 +48,7 @@ def get_dashboard_overview(
         (AcademicRecord.semester   == subq.c.max_semester)
     ).join(Student, Student.id == AcademicRecord.student_id).filter(
         Student.status != "Lulus",
-        or_(AcademicRecord.status == "HIGH_RISK", AcademicRecord.ipk < IPK_HIGH_RISK)
+        AcademicRecord.status == "HIGH_RISK"
     )
     query_warn = db.query(AcademicRecord).join(
         subq,
@@ -56,17 +56,14 @@ def get_dashboard_overview(
         (AcademicRecord.semester   == subq.c.max_semester)
     ).join(Student, Student.id == AcademicRecord.student_id).filter(
         Student.status != "Lulus",
-        AcademicRecord.status != "HIGH_RISK",
-        or_(AcademicRecord.status == "Warning", (AcademicRecord.ipk >= IPK_HIGH_RISK) & (AcademicRecord.ipk < IPK_WARNING))
+        AcademicRecord.status == "Warning"
     )
     query_safe = db.query(AcademicRecord).join(
         subq,
         (AcademicRecord.student_id == subq.c.student_id) &
         (AcademicRecord.semester   == subq.c.max_semester)
     ).join(Student, Student.id == AcademicRecord.student_id).filter(
-        AcademicRecord.status != "HIGH_RISK",
-        AcademicRecord.status != "Warning",
-        or_(AcademicRecord.status == "Aman", AcademicRecord.ipk >= IPK_WARNING)
+        AcademicRecord.status == "Aman"
     )
 
     high_risk_base = query_hr.count()
@@ -154,13 +151,11 @@ def get_risk_status_per_prodi(
         prodi = s.prodi or "Tidak Diketahui"
         if prodi not in prodi_counts:
             prodi_counts[prodi] = {"merah": 0, "kuning": 0, "hijau": 0}
-        ipk = s.ipk or 0.0
-        status_rec = s.status_rec
-        if status_rec == "HIGH_RISK" or ipk < IPK_HIGH_RISK:
+        if s.status_rec == "HIGH_RISK":
             prodi_counts[prodi]["merah"]  += 1
-        elif status_rec == "Warning" or (ipk < IPK_WARNING and status_rec != "HIGH_RISK"):
+        elif s.status_rec == "Warning":
             prodi_counts[prodi]["kuning"] += 1
-        else:
+        elif s.status_rec == "Aman":
             prodi_counts[prodi]["hijau"]  += 1
 
     # ── 2. Mahasiswa Aktif tanpa AcademicRecord → klasifikasi lama studi ──
@@ -263,19 +258,16 @@ def get_risk_students(
     if zone == "merah":
         query = query.filter(
             Student.status != "Lulus",
-            or_(AcademicRecord.status == "HIGH_RISK", AcademicRecord.ipk < IPK_HIGH_RISK)
+            AcademicRecord.status == "HIGH_RISK"
         )
     elif zone == "kuning":
         query = query.filter(
             Student.status != "Lulus",
-            AcademicRecord.status != "HIGH_RISK",
-            or_(AcademicRecord.status == "Warning", (AcademicRecord.ipk >= IPK_HIGH_RISK) & (AcademicRecord.ipk < IPK_WARNING))
+            AcademicRecord.status == "Warning"
         )
     elif zone == "hijau":
         query = query.filter(
-            AcademicRecord.status != "HIGH_RISK",
-            AcademicRecord.status != "Warning",
-            or_(AcademicRecord.status == "Aman", AcademicRecord.ipk >= IPK_WARNING)
+            AcademicRecord.status == "Aman"
         )
         
     results = query.order_by(Student.nama).limit(200).all()

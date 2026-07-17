@@ -11,9 +11,10 @@ const httpsAgent = new https.Agent({ keepAlive: true, maxSockets: 10 });
 export class RestAdapter {
     constructor(logger) {
         this.logger = logger;
+        this.lastRequestTime = 0;
     }
 
-    async get(url, sessionParams = {}) {
+    async get(url, sessionParams = {}, retries = 5, delay = 2000) {
         const headers = { 'Content-Type': 'application/json' };
         
         if (sessionParams.bearerToken) {
@@ -24,19 +25,40 @@ export class RestAdapter {
             headers['Cookie'] = sessionParams.cookies;
         }
         
+        // Pacing: Ensure at least 250ms gap between requests to prevent triggering rate limiter
+        const now = Date.now();
+        const elapsed = now - this.lastRequestTime;
+        if (elapsed < 250) {
+            const waitTime = 250 - elapsed;
+            await new Promise(resolve => setTimeout(resolve, waitTime));
+        }
+        this.lastRequestTime = Date.now();
+        
         this.logger?.debug(`[REST] GET ${url}`);
         
-        const response = await fetch(url, {
-            method: 'GET',
-            headers: headers,
-            agent: url.startsWith('https') ? httpsAgent : httpAgent
-        });
+        for (let i = 0; i < retries; i++) {
+            try {
+                const response = await fetch(url, {
+                    method: 'GET',
+                    headers: headers,
+                    agent: url.startsWith('https') ? httpsAgent : httpAgent
+                });
 
-        if (!response.ok) {
-            throw new Error(`[REST] Error ${response.status}: ${await response.text()}`);
+                if (!response.ok) {
+                    throw new Error(`[REST] Error ${response.status}: ${await response.text()}`);
+                }
+
+                return await response.json();
+            } catch (err) {
+                if (i === retries - 1) {
+                    this.logger?.error(`[REST] Final failure for GET ${url}: ${err.message}`);
+                    throw err;
+                }
+                const backoffDelay = delay * Math.pow(2, i);
+                this.logger?.warn(`[REST] GET ${url} failed: ${err.message}. Retrying in ${backoffDelay}ms... (Attempt ${i + 1}/${retries})`);
+                await new Promise(resolve => setTimeout(resolve, backoffDelay));
+            }
         }
-
-        return await response.json();
     }
 
     // ==========================================

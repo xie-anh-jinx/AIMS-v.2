@@ -30,25 +30,32 @@ export class ChangeDetector {
         return crypto.createHash('md5').update(JSON.stringify(hashData)).digest('hex');
     }
 
-    detectChanges(newRecord) {
+    detectChanges(newRecord, nimsWithGrades = null) {
         const studentId = newRecord.student_id;
         const newHash = this._hash(newRecord);
         const oldHash = this.stateDb.get(studentId);
+        
+        // Force synchronization if student has no transcripts (no grades) in local DB
+        const hasGrades = nimsWithGrades ? nimsWithGrades.has(studentId) : true;
 
         if (!oldHash) {
-            this.stateDb.set(studentId, newHash);
-            this._save();
-            this.logger?.debug(`[Diff API] New student detected: ${studentId}`);
-            return { changed: true, reason: 'NEW_RECORD' };
+            return { changed: true, reason: 'NEW_RECORD', newHash };
         }
 
         if (oldHash !== newHash) {
-            this.stateDb.set(studentId, newHash);
-            this._save();
-            this.logger?.debug(`[Diff API] Data mutation detected for: ${studentId}`);
-            return { changed: true, reason: 'UPDATED_RECORD' };
+            return { changed: true, reason: 'UPDATED_RECORD', newHash };
+        }
+
+        if (!hasGrades) {
+            return { changed: true, reason: 'MISSING_TRANSCRIPT_RETRY', newHash };
         }
 
         return { changed: false, reason: 'UNCHANGED' };
+    }
+
+    commitChange(studentId, newHash) {
+        this.stateDb.set(studentId, newHash);
+        this._save();
+        this.logger?.debug(`[ChangeDetector] State committed for: ${studentId}`);
     }
 }

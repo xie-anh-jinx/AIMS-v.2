@@ -122,6 +122,7 @@ export default function ProdiDashboard() {
   // Stats arrays for graphs
   const [stats, setStats] = useState<any>(null);
   const [semesterDist, setSemesterDist] = useState<any[]>([]);
+  const [angkatanDist, setAngkatanDist] = useState<any[]>([]);
   const [statusDist, setStatusDist] = useState<any[]>([]);
   const [prodis, setProdis] = useState<string[]>([]);
   const [angkatans, setAngkatans] = useState<number[]>([]);
@@ -169,6 +170,7 @@ export default function ProdiDashboard() {
       setStatusDist(await statRes.json());
       
       const angkatanData = await angkatanRes.json();
+      setAngkatanDist(angkatanData);
       setAngkatans(angkatanData.map((d: any) => Number(d.name)).sort((a: number, b: number) => b - a));
     } catch (e) {
       console.warn("Tunggu sebentar, menghubungkan ke server...", e);
@@ -397,8 +399,15 @@ export default function ProdiDashboard() {
 
   // Pie chart: Aktif vs Cuti vs lainnya
   const PIE_COLORS: Record<string, string> = {
-    'Aktif': '#22c55e', 'Lulus': '#3b82f6',
-    'Drop Out': '#ef4444', 'Cuti': '#eab308', 'Non Aktif': '#94a3b8',
+    'Aktif': '#3b82f6', 
+    'Lulus': '#8b5cf6', 
+    'Drop Out': '#ef4444', 
+    'Keluar': '#dc2626',
+    'Zona Merah': '#f43f5e', 
+    'Zona Kuning': '#f59e0b',
+    'Zona Hijau': '#22c55e', 
+    'Cuti': '#eab308',
+    'Non Aktif': '#94a3b8'
   };
 
   return (
@@ -557,12 +566,12 @@ export default function ProdiDashboard() {
                   </div>
                 </div>
 
-                {/* Bar: Distribusi per Semester */}
+                {/* Bar: Distribusi per Angkatan */}
                 <div className="bg-[#1e293b] rounded-xl p-6 border border-[#334155] col-span-2">
-                  <h3 className="text-sm font-semibold text-white mb-4">Distribusi Mahasiswa Aktif per Semester</h3>
+                  <h3 className="text-sm font-semibold text-white mb-4">Distribusi Mahasiswa per Angkatan</h3>
                   <div className="h-[240px]">
                     <ResponsiveContainer width="100%" height="100%">
-                      <BarChart data={semesterDist} margin={{ top: 5, right: 0, left: -20, bottom: 0 }}>
+                      <BarChart data={angkatanDist} margin={{ top: 5, right: 0, left: -20, bottom: 0 }}>
                         <CartesianGrid strokeDasharray="3 3" stroke="#334155" vertical={false} />
                         <XAxis dataKey="name" stroke="#64748b" fontSize={11} tickLine={false} axisLine={false} />
                         <YAxis stroke="#64748b" fontSize={11} tickLine={false} axisLine={false} />

@@ -1,12 +1,12 @@
 'use client';
 
 import React, { useEffect, useState, useCallback } from 'react';
-import {useRouter} from 'next/navigation';
-import { 
+import { useRouter } from 'next/navigation';
+import {
   Menu, Users, AlertTriangle, Settings, LogOut, ChevronRight, Activity, Database,
   Bell, Shield, Server, Eye, Search, X, Trash, User, Edit2, RefreshCw
 } from 'lucide-react';
-import {PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Tooltip as RechartsTooltip, Legend} from 'recharts';
+import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Tooltip as RechartsTooltip, Legend } from 'recharts';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
@@ -44,11 +44,11 @@ interface TranscriptRecord {
 // Status color helpers
 const getStatusBadge = (status: string) => {
   switch (status) {
-    case 'Aktif':    return 'bg-green-500/10 text-green-400 border-green-500/20';
-    case 'Lulus':    return 'bg-blue-500/10 text-blue-400 border-blue-500/20';
+    case 'Aktif': return 'bg-green-500/10 text-green-400 border-green-500/20';
+    case 'Lulus': return 'bg-blue-500/10 text-blue-400 border-blue-500/20';
     case 'Drop Out': return 'bg-red-500/10 text-red-400 border-red-500/20';
-    case 'Cuti':     return 'bg-yellow-500/10 text-yellow-400 border-yellow-500/20';
-    default:         return 'bg-slate-500/10 text-slate-400 border-slate-500/20';
+    case 'Cuti': return 'bg-yellow-500/10 text-yellow-400 border-yellow-500/20';
+    default: return 'bg-slate-500/10 text-slate-400 border-slate-500/20';
   }
 };
 
@@ -57,6 +57,7 @@ export default function AdminDashboard() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [semesterDist, setSemesterDist] = useState<ChartEntry[]>([]);
+  const [angkatanDist, setAngkatanDist] = useState<ChartEntry[]>([]);
   const [statusDist, setStatusDist] = useState<ChartEntry[]>([]);
   const [riskStatusPerProdi, setRiskStatusPerProdi] = useState<any[]>([]);
   const [allStudents, setAllStudents] = useState<StudentRecord[]>([]);
@@ -107,6 +108,14 @@ export default function AdminDashboard() {
   const [profilePictureUrl, setProfilePictureUrl] = useState<string | null>(null);
   const [adminName, setAdminName] = useState<string>('Administrator');
 
+  // OpenClaw states
+  const [evaluating, setEvaluating] = useState(false);
+  const [broadcastForm, setBroadcastForm] = useState({ target: 'YELLOW_ZONE', channel: 'WHATSAPP', message: '' });
+  const [broadcasting, setBroadcasting] = useState(false);
+  const [agentLogs, setAgentLogs] = useState<any[]>([]);
+  const [notifLogs, setNotifLogs] = useState<any[]>([]);
+  const [activeLogTab, setActiveLogTab] = useState('NOTIF');
+
   const openProfileModal = async () => {
     try {
       const res = await fetch(`${API_URL}/admin/profile`, { headers: authHeaders() });
@@ -135,7 +144,18 @@ export default function AdminDashboard() {
       if (res.ok) {
         setSentAdminNotes(await res.json());
       }
-    } catch(e) { console.error(e); }
+    } catch (e) { console.error(e); }
+  }, [authHeaders]);
+
+  const fetchAgentLogs = useCallback(async () => {
+    try {
+      const [resAgent, resNotif] = await Promise.all([
+        fetch(`${API_URL}/agent/logs/activity?limit=20`, { headers: authHeaders() }),
+        fetch(`${API_URL}/agent/logs/notifications?limit=20`, { headers: authHeaders() })
+      ]);
+      if (resAgent.ok) setAgentLogs(await resAgent.json());
+      if (resNotif.ok) setNotifLogs(await resNotif.json());
+    } catch (e) { console.error(e); }
   }, [authHeaders]);
 
   useEffect(() => {
@@ -145,9 +165,10 @@ export default function AdminDashboard() {
 
     const init = async () => {
       try {
-        const [statsRes, semRes, statusRes, riskRes, prodisRes, angkatansRes, countRes] = await Promise.all([
+        const [statsRes, semRes, angkatanDistRes, statusRes, riskRes, prodisRes, angkatansRes, countRes] = await Promise.all([
           fetch(`${API_URL}/admin/overview`, { headers: authHeaders() }),
           fetch(`${API_URL}/admin/stats/semester`, { headers: authHeaders() }),
+          fetch(`${API_URL}/admin/stats/angkatan`, { headers: authHeaders() }),
           fetch(`${API_URL}/admin/stats/status`, { headers: authHeaders() }),
           fetch(`${API_URL}/admin/stats/risk-per-prodi`, { headers: authHeaders() }),
           fetch(`${API_URL}/admin/students/prodi-list`, { headers: authHeaders() }),
@@ -159,6 +180,7 @@ export default function AdminDashboard() {
 
         setStats(await statsRes.json());
         setSemesterDist(await semRes.json());
+        if (angkatanDistRes.ok) setAngkatanDist(await angkatanDistRes.json());
         setStatusDist(await statusRes.json());
         setRiskStatusPerProdi(await riskRes.json());
         setProdis(await prodisRes.json());
@@ -183,7 +205,7 @@ export default function AdminDashboard() {
             setAdminNoteForm(prev => ({ ...prev, advisor_id: advData[0].id.toString() }));
           }
         }
-        
+
         await fetchSentAdminNotes();
       } catch (e) {
         console.error(e);
@@ -192,13 +214,22 @@ export default function AdminDashboard() {
       }
     };
     init();
-    
+
     const cachedPic = localStorage.getItem('profile_picture');
     if (cachedPic) setProfilePictureUrl(cachedPic);
-    
+
+
     const nameMatch = document.cookie.match(/(^| )name=([^;]+)/);
-    if(nameMatch) setAdminName(decodeURIComponent(nameMatch[2]));
-  }, [router, authHeaders]);
+    if (nameMatch) setAdminName(decodeURIComponent(nameMatch[2]));
+
+    // Auto-fetch agent logs periodically if on Settings tab
+    let interval: NodeJS.Timeout;
+    if (activeTab === 'Pengaturan') {
+      fetchAgentLogs();
+      interval = setInterval(fetchAgentLogs, 10000);
+    }
+    return () => clearInterval(interval);
+  }, [router, authHeaders, activeTab, fetchAgentLogs]);
 
   const applyFilters = useCallback(async (eOrPage?: any) => {
     const page = typeof eOrPage === 'number' ? eOrPage : 1;
@@ -237,7 +268,7 @@ export default function AdminDashboard() {
   const handleResetUserPassword = async (username: string) => {
     const confirmReset = window.confirm(`Apakah Anda yakin ingin mereset password untuk user ${username} kembali ke default ("password123")?`);
     if (!confirmReset) return;
-    
+
     try {
       const res = await fetch(`${API_URL}/auth/reset-user-password`, {
         method: 'POST',
@@ -257,6 +288,44 @@ export default function AdminDashboard() {
       console.error(e);
       alert("Gagal mereset sandi.");
     }
+  };
+
+  const handleForceEvaluate = async () => {
+    if (!window.confirm('Beri perintah Agen AI untuk memindai ulang profil risiko semua mahasiswa aktif?')) return;
+    setEvaluating(true);
+    try {
+      const res = await fetch(`${API_URL}/agent/evaluate-all`, { method: 'POST', headers: authHeaders() });
+      if (res.ok) {
+        alert('Perintah evaluasi terkirim. AI Agent akan bekerja di latar belakang.');
+        fetchAgentLogs();
+      } else {
+        alert('Gagal mengirim perintah evaluasi.');
+      }
+    } catch (e) { console.error(e); }
+    finally { setEvaluating(false); }
+  };
+
+  const handleSendBroadcast = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!broadcastForm.message.trim()) return alert('Pesan tidak boleh kosong');
+    if (!window.confirm(`Kirim broadcast ini ke ${broadcastForm.target} menggunakan ${broadcastForm.channel}?`)) return;
+    setBroadcasting(true);
+    try {
+      const res = await fetch(`${API_URL}/agent/broadcast`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...authHeaders() },
+        body: JSON.stringify(broadcastForm)
+      });
+      if (res.ok) {
+        const data = await res.json();
+        alert(data.message);
+        setBroadcastForm({ ...broadcastForm, message: '' });
+        fetchAgentLogs();
+      } else {
+        alert('Gagal mengirim broadcast.');
+      }
+    } catch (e) { console.error(e); }
+    finally { setBroadcasting(false); }
   };
 
   const openRiskModal = async (zone: 'merah' | 'kuning' | 'hijau', title: string) => {
@@ -317,7 +386,7 @@ export default function AdminDashboard() {
       } else {
         alert('Gagal menghapus pesan.');
       }
-    } catch(e) { console.error(e); }
+    } catch (e) { console.error(e); }
   };
 
   const handleUpdateProfile = async (e: React.FormEvent) => {
@@ -336,13 +405,13 @@ export default function AdminDashboard() {
       });
       if (res.ok) {
         if (profileForm.profile_picture) {
-           await fetch(`${API_URL}/auth/profile-picture`, {
-             method: 'PUT',
-             headers: { 'Content-Type': 'application/json', ...authHeaders() },
-             body: JSON.stringify({ profile_picture: profileForm.profile_picture })
-           });
-           setProfilePictureUrl(profileForm.profile_picture);
-           localStorage.setItem('profile_picture', profileForm.profile_picture);
+          await fetch(`${API_URL}/auth/profile-picture`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json', ...authHeaders() },
+            body: JSON.stringify({ profile_picture: profileForm.profile_picture })
+          });
+          setProfilePictureUrl(profileForm.profile_picture);
+          localStorage.setItem('profile_picture', profileForm.profile_picture);
         }
         alert("Profil berhasil diperbarui!");
         setShowProfileModal(false);
@@ -378,13 +447,18 @@ export default function AdminDashboard() {
 
   // Pie chart: Aktif vs Cuti vs lainnya
   const PIE_COLORS: Record<string, string> = {
-    'Aktif': '#22c55e', 'Lulus': '#3b82f6',
-    'Drop Out': '#ef4444', 'Cuti': '#eab308', 'Non Aktif': '#94a3b8',
+    'Aktif':     '#22c55e',
+    'Lulus':     '#3b82f6',
+    'Drop Out':  '#ef4444',
+    'Cuti':      '#eab308',
+    'Non Aktif': '#94a3b8',
+    'Keluar':    '#f97316',
+    'Pindah':    '#a855f7',
   };
 
   return (
     <div className="flex min-h-screen font-sans bg-[#0b1121] text-slate-300">
-      
+
       {/* ── Sidebar ─────────────────────────────────────────────────── */}
       {/* ── Sidebar ─────────────────────────────────────────────────── */}
       {mobileMenuOpen && <div className="fixed inset-0 bg-black/50 z-30 md:hidden" onClick={() => setMobileMenuOpen(false)} />}
@@ -403,9 +477,9 @@ export default function AdminDashboard() {
               <p className="text-xs text-slate-500 font-medium mt-1">Super Admin</p>
             </div>
           </div>
-          <button 
-           onClick={openProfileModal}
-           className="flex items-center justify-center gap-2 w-full py-2 px-3 rounded-lg bg-red-500/10 hover:bg-red-500/20 text-red-400 text-xs font-semibold transition"
+          <button
+            onClick={openProfileModal}
+            className="flex items-center justify-center gap-2 w-full py-2 px-3 rounded-lg bg-red-500/10 hover:bg-red-500/20 text-red-400 text-xs font-semibold transition"
           >
             <Edit2 size={12} />
             Pengaturan Profil
@@ -445,7 +519,7 @@ export default function AdminDashboard() {
       {/* ── Main Content ─────────────────────────────────────────────── */}
       <main className="flex-1 md:ml-[260px] p-4 md:p-8 overflow-y-auto w-full">
         <div className="max-w-[1200px] mx-auto w-full">
-          
+
           <div className="md:hidden flex items-center mb-6"><button onClick={() => setMobileMenuOpen(true)} className="text-slate-300 hover:text-white p-2 -ml-2"><Menu size={24} /></button></div>
           {/* Header */}
           <div className="flex items-start justify-between mb-8">
@@ -456,7 +530,7 @@ export default function AdminDashboard() {
               <p className="text-[#64748b] text-sm mt-1">Monitoring & Manajemen Sistem AIMS</p>
             </div>
             <div className="flex items-center gap-3">
-              <button 
+              <button
                 onClick={() => setShowAdminNoteModal(true)}
                 className="flex items-center gap-2 bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded-lg text-sm font-semibold transition"
               >
@@ -482,12 +556,11 @@ export default function AdminDashboard() {
                 ].map(({ label, value, icon: Icon, color, note }) => (
                   <div key={label} className="bg-[#1e293b] rounded-xl p-5 border border-[#334155]">
                     <div className="flex justify-between items-start mb-4">
-                      <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
-                        color === 'blue' ? 'bg-blue-500/10 text-blue-500' :
-                        color === 'green' ? 'bg-green-500/10 text-green-500' :
-                        color === 'red' ? 'bg-red-500/10 text-red-500' :
-                        'bg-yellow-500/10 text-yellow-500'
-                      }`}><Icon size={20} /></div>
+                      <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${color === 'blue' ? 'bg-blue-500/10 text-blue-500' :
+                          color === 'green' ? 'bg-green-500/10 text-green-500' :
+                            color === 'red' ? 'bg-red-500/10 text-red-500' :
+                              'bg-yellow-500/10 text-yellow-500'
+                        }`}><Icon size={20} /></div>
                       {note && <span className="text-xs font-semibold text-slate-400">{note}</span>}
                     </div>
                     <h3 className="text-3xl font-bold text-white mb-1">{value?.toLocaleString('id-ID') ?? '–'}</h3>
@@ -523,12 +596,12 @@ export default function AdminDashboard() {
                   </div>
                 </div>
 
-                {/* Bar: Distribusi per Semester */}
+                {/* Bar: Distribusi per Angkatan */}
                 <div className="bg-[#1e293b] rounded-xl p-6 border border-[#334155] col-span-2">
-                  <h3 className="text-sm font-semibold text-white mb-4">Distribusi Mahasiswa Aktif per Semester</h3>
+                  <h3 className="text-sm font-semibold text-white mb-4">Distribusi Mahasiswa per Angkatan</h3>
                   <div className="h-[240px]">
                     <ResponsiveContainer width="100%" height="100%">
-                      <BarChart data={semesterDist} margin={{ top: 5, right: 0, left: -20, bottom: 0 }}>
+                      <BarChart data={angkatanDist} margin={{ top: 5, right: 0, left: -20, bottom: 0 }}>
                         <CartesianGrid strokeDasharray="3 3" stroke="#334155" vertical={false} />
                         <XAxis dataKey="name" stroke="#64748b" fontSize={11} tickLine={false} axisLine={false} />
                         <YAxis stroke="#64748b" fontSize={11} tickLine={false} axisLine={false} />
@@ -568,7 +641,7 @@ export default function AdminDashboard() {
                 <div className="overflow-x-auto w-full"><table className="w-full text-left text-sm min-w-[700px]">
                   <thead className="bg-[#0b1121]/50 border-b border-[#334155]">
                     <tr>
-                      {['NIM','Nama','Program Studi','Semester','Status'].map(h => (
+                      {['NIM', 'Nama', 'Program Studi', 'Semester', 'Status'].map(h => (
                         <th key={h} className="py-3 px-5 text-xs text-slate-400 font-medium">{h}</th>
                       ))}
                     </tr>
@@ -609,8 +682,8 @@ export default function AdminDashboard() {
                   { id: 'kuning', label: 'Zona Kuning (Warning)', val: stats?.warning_students, sub: 'Performa akademik pas-pasan (IPK 2.0 - 2.74)', bg: 'bg-[#282111]', border: 'border-yellow-900/30', color: 'text-yellow-400', glow: 'bg-yellow-900/40' },
                   { id: 'hijau', label: 'Zona Hijau (Aman)', val: stats?.safe_students, sub: 'Trek akademik aman (IPK 2.75 ke atas)', bg: 'bg-[#0f291e]', border: 'border-green-900/30', color: 'text-green-400', glow: 'bg-green-900/40', disabled: true },
                 ].map(({ id, label, val, sub, bg, border, color, glow, disabled }) => (
-                  <div 
-                    key={label} 
+                  <div
+                    key={label}
                     onClick={() => !disabled && openRiskModal(id as any, label)}
                     className={`${bg} rounded-xl p-5 border ${border} relative overflow-hidden ${!disabled ? 'cursor-pointer hover:scale-[1.02] transition-transform' : 'opacity-80'}`}
                   >
@@ -681,8 +754,162 @@ export default function AdminDashboard() {
                     </div>
                   </div>
                 </div>
-                <div className="flex justify-end pt-4">
+                <div className="flex justify-end pt-4 border-b border-[#334155] pb-8">
                   <button className="bg-blue-600 hover:bg-blue-500 text-white font-semibold text-sm px-6 py-2.5 rounded-lg transition-colors">Simpan Perubahan</button>
+                </div>
+
+                {/* ── OpenClaw Advanced Controls ── */}
+                <div className="pt-4 space-y-8">
+                  <div>
+                    <div className="flex justify-between items-end mb-4">
+                      <div>
+                        <h3 className="text-sm font-semibold text-slate-200">Kontrol Manul AI Agent</h3>
+                        <p className="text-xs text-slate-400 mt-1">Gunakan panel ini untuk evaluasi AI Agent atau melakukan broadcast pesan terpadu.</p>
+                      </div>
+                      <button
+                        onClick={handleForceEvaluate}
+                        disabled={evaluating}
+                        className="flex items-center gap-2 bg-indigo-600/20 hover:bg-indigo-600/40 text-indigo-400 border border-indigo-500/30 px-4 py-2 rounded-lg text-sm font-semibold transition-colors disabled:opacity-50"
+                      >
+                        <RefreshCw size={14} className={evaluating ? "animate-spin" : ""} />
+                        {evaluating ? 'Memindai...' : 'Force AI Evaluation'}
+                      </button>
+                    </div>
+
+                    <form onSubmit={handleSendBroadcast} className="p-5 rounded-xl border border-[#334155] bg-[#1a2333] space-y-4">
+                      <div className="flex flex-col sm:flex-row gap-4">
+                        <div className="flex-1">
+                          <label className="block text-xs font-semibold text-slate-400 mb-1.5">Target Audiens</label>
+                          <select
+                            value={broadcastForm.target} onChange={e => setBroadcastForm({ ...broadcastForm, target: e.target.value })}
+                            className="w-full bg-[#1e293b] border border-[#334155] text-white text-sm px-4 py-2 rounded-lg focus:outline-none focus:border-blue-500"
+                          >
+                            <option value="ALL">Seluruh Mahasiswa Aktif</option>
+                            <option value="RED_ZONE">Zona Merah Kritis (IPK &lt; 2.0)</option>
+                            <option value="YELLOW_ZONE">Zona Kuning Peringatan</option>
+                          </select>
+                        </div>
+                        <div className="flex-1">
+                          <label className="block text-xs font-semibold text-slate-400 mb-1.5">Saluran Pengiriman</label>
+                          <select
+                            value={broadcastForm.channel} onChange={e => setBroadcastForm({ ...broadcastForm, channel: e.target.value })}
+                            className="w-full bg-[#1e293b] border border-[#334155] text-white text-sm px-4 py-2 rounded-lg focus:outline-none focus:border-blue-500"
+                          >
+                            <option value="WHATSAPP">WhatsApp (OpenClaw)</option>
+                            <option value="TELEGRAM">Telegram Bot API</option>
+                            <option value="EMAIL">Email Blast</option>
+                          </select>
+                        </div>
+                      </div>
+                      <div>
+                        <label className="block text-xs font-semibold text-slate-400 mb-1.5">Pesan Teks (Mendukung Markdown)</label>
+                        <textarea
+                          rows={3}
+                          required
+                          value={broadcastForm.message} onChange={e => setBroadcastForm({ ...broadcastForm, message: e.target.value })}
+                          placeholder="Ketik pengumuman yang ingin disiarkan..."
+                          className="w-full bg-[#1e293b] border border-[#334155] text-white text-sm px-4 py-3 rounded-lg focus:outline-none focus:border-blue-500 resize-y"
+                        />
+                      </div>
+                      <div className="flex justify-end pt-1">
+                        <button
+                          type="submit"
+                          disabled={broadcasting}
+                          className="flex items-center gap-2 bg-blue-600 hover:bg-blue-500 text-white text-sm font-semibold px-6 py-2.5 rounded-lg transition-colors disabled:opacity-50"
+                        >
+                          <Server size={14} />
+                          {broadcasting ? 'Mengirim...' : 'Kirim Broadcast'}
+                        </button>
+                      </div>
+                    </form>
+                  </div>
+
+                  <div>
+                    <h3 className="text-sm font-semibold text-slate-200 mb-4">Log Aktivitas Agen & OpenClaw</h3>
+                    <div className="bg-[#1a2333] border border-[#334155] rounded-xl overflow-hidden">
+                      <div className="flex border-b border-[#334155]">
+                        <button
+                          onClick={() => setActiveLogTab('NOTIF')}
+                          className={`flex-1 py-3 text-sm font-semibold transition-colors ${activeLogTab === 'NOTIF' ? 'bg-blue-600/10 text-blue-400 border-b-2 border-blue-500' : 'text-slate-400 hover:bg-[#1e293b]'}`}
+                        >
+                          Pesan Terkirim
+                        </button>
+                        <button
+                          onClick={() => setActiveLogTab('EVAL')}
+                          className={`flex-1 py-3 text-sm font-semibold transition-colors ${activeLogTab === 'EVAL' ? 'bg-indigo-600/10 text-indigo-400 border-b-2 border-indigo-500' : 'text-slate-400 hover:bg-[#1e293b]'}`}
+                        >
+                          Riwayat Keputusan AI
+                        </button>
+                      </div>
+                      <div className="p-0 max-h-[300px] overflow-y-auto">
+                        {activeLogTab === 'NOTIF' ? (
+                          notifLogs.length === 0 ? (
+                            <p className="p-6 text-center text-xs text-slate-500">Belum ada log notifikasi OpenClaw.</p>
+                          ) : (
+                            <table className="w-full text-left text-xs">
+                              <thead className="bg-[#1e293b] sticky top-0">
+                                <tr>
+                                  <th className="px-4 py-2 text-slate-400 font-medium">Waktu</th>
+                                  <th className="px-4 py-2 text-slate-400 font-medium">Kanal</th>
+                                  <th className="px-4 py-2 text-slate-400 font-medium">Penerima</th>
+                                  <th className="px-4 py-2 text-slate-400 font-medium">Status</th>
+                                </tr>
+                              </thead>
+                              <tbody className="divide-y divide-[#334155]/50">
+                                {notifLogs.map(n => (
+                                  <tr key={n.id} className="hover:bg-[#1e293b]/50">
+                                    <td className="px-4 py-3 text-slate-300">
+                                      {new Date(n.sent_at).toLocaleString('id-ID', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                                    </td>
+                                    <td className="px-4 py-3 text-slate-300">{n.channel}</td>
+                                    <td className="px-4 py-3 text-slate-300">{n.recipient}</td>
+                                    <td className="px-4 py-3">
+                                      <span className={`px-2 py-0.5 rounded text-[10px] ${n.status === 'SENT' ? 'bg-green-500/10 text-green-400 border border-green-500/20' : 'bg-red-500/10 text-red-400 border border-red-500/20'}`}>
+                                        {n.status}
+                                      </span>
+                                    </td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          )
+                        ) : (
+                          agentLogs.length === 0 ? (
+                            <p className="p-6 text-center text-xs text-slate-500">Belum ada riwayat aktivitas agen.</p>
+                          ) : (
+                            <table className="w-full text-left text-xs">
+                              <thead className="bg-[#1e293b] sticky top-0">
+                                <tr>
+                                  <th className="px-4 py-2 text-slate-400 font-medium">Waktu</th>
+                                  <th className="px-4 py-2 text-slate-400 font-medium">Aksi/Ruleset</th>
+                                  <th className="px-4 py-2 text-slate-400 font-medium">Status</th>
+                                </tr>
+                              </thead>
+                              <tbody className="divide-y divide-[#334155]/50">
+                                {agentLogs.map(l => (
+                                  <tr key={l.id} className="hover:bg-[#1e293b]/50">
+                                    <td className="px-4 py-3 text-slate-300 align-top whitespace-nowrap">
+                                      {new Date(l.created_at).toLocaleString('id-ID', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                                    </td>
+                                    <td className="px-4 py-3 text-slate-300">
+                                      <span className="font-semibold text-blue-400">{l.action}</span>
+                                      {l.rule_name && <span className="ml-1 text-slate-400">({l.rule_name})</span>}
+                                      <p className="text-[11px] text-slate-500 mt-1 line-clamp-2">{l.message}</p>
+                                    </td>
+                                    <td className="px-4 py-3 align-top">
+                                      <span className={`px-2 py-0.5 rounded text-[10px] ${l.status === 'SUCCESS' ? 'bg-green-500/10 text-green-400 border border-green-500/20' : 'bg-red-500/10 text-red-400 border border-red-500/20'}`}>
+                                        {l.status}
+                                      </span>
+                                    </td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          )
+                        )}
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -716,7 +943,7 @@ export default function AdminDashboard() {
                   <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)}
                     className="bg-[#1e293b] border border-[#334155] text-slate-300 text-xs px-3 py-2 rounded-lg focus:outline-none focus:border-blue-500">
                     <option value="">Semua Status</option>
-                    {['Aktif','Cuti','Lulus','Drop Out','Non Aktif'].map(s => <option key={s} value={s}>{s}</option>)}
+                    {['Aktif', 'Cuti', 'Lulus', 'Drop Out', 'Non Aktif'].map(s => <option key={s} value={s}>{s}</option>)}
                   </select>
                   <div className="relative flex-1 min-w-[200px]">
                     <input type="text" value={searchQuery} onChange={e => setSearchQuery(e.target.value)} onKeyDown={e => e.key === 'Enter' && applyFilters()}
@@ -734,7 +961,7 @@ export default function AdminDashboard() {
                 <div className="overflow-x-auto w-full"><table className="w-full text-left text-sm min-w-[700px]">
                   <thead className="bg-[#1e293b] border-b border-[#334155]">
                     <tr>
-                      {['NIM','Nama Lengkap','Program Studi','Angkatan','Semester','Status Terkini','Aksi'].map(h => (
+                      {['NIM', 'Nama Lengkap', 'Program Studi', 'Angkatan', 'Semester', 'Status Terkini', 'Aksi'].map(h => (
                         <th key={h} className="py-4 px-5 text-xs text-slate-400 font-semibold">{h}</th>
                       ))}
                     </tr>
@@ -757,8 +984,8 @@ export default function AdminDashboard() {
                             <button onClick={() => openTranscript(s)} className="text-xs bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 px-3 py-1.5 rounded-lg border border-blue-500/10 flex items-center gap-1.5 transition">
                               <Eye size={12} /> Lihat Transkrip
                             </button>
-                            <button 
-                              onClick={() => handleResetUserPassword(s.nim)} 
+                            <button
+                              onClick={() => handleResetUserPassword(s.nim)}
                               className="text-xs bg-red-500/10 hover:bg-red-500/20 text-red-400 px-3 py-1.5 rounded-lg border border-red-500/10 flex items-center gap-1.5 transition font-semibold"
                             >
                               <RefreshCw size={12} /> Reset Sandi
@@ -800,7 +1027,7 @@ export default function AdminDashboard() {
 
       {/* Transcript Modal */}
       {transcriptModalOpen && selectedStudent && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#000000_cc] backdrop-blur-sm p-4">
+        <div className="fixed inset-0 z-60 flex items-center justify-center bg-[#000000_cc] backdrop-blur-sm p-4">
           <div className="bg-[#0f172a] border border-[#334155] rounded-xl w-full max-w-3xl flex flex-col max-h-[90vh] shadow-2xl">
             <div className="flex justify-between items-center p-5 border-b border-[#334155]">
               <div>
@@ -836,7 +1063,7 @@ export default function AdminDashboard() {
                         <td className="py-2.5 px-4 text-slate-200 font-medium">{t.course?.nama}</td>
                         <td className="py-2.5 px-4 text-slate-400 text-center">{t.course?.sks}</td>
                         <td className="py-2.5 px-4 text-center">
-                          <span className={`inline-flex items-center justify-center w-6 h-6 rounded font-semibold text-xs ${['A','A-'].includes(t.grade) ? 'bg-green-500/10 text-green-400' : ['B+','B','B-'].includes(t.grade) ? 'bg-blue-500/10 text-blue-400' : 'bg-red-500/10 text-red-400'}`}>{t.grade}</span>
+                          <span className={`inline-flex items-center justify-center w-6 h-6 rounded font-semibold text-xs ${['A', 'A-'].includes(t.grade) ? 'bg-green-500/10 text-green-400' : ['B+', 'B', 'B-'].includes(t.grade) ? 'bg-blue-500/10 text-blue-400' : 'bg-red-500/10 text-red-400'}`}>{t.grade}</span>
                         </td>
                         <td className="py-2.5 px-4 text-slate-400 text-center">{t.bobot}</td>
                       </tr>
@@ -868,7 +1095,7 @@ export default function AdminDashboard() {
                 <X size={20} />
               </button>
             </div>
-            
+
             <div className="p-6 overflow-y-auto flex-1">
               {riskLoading ? (
                 <div className="text-center py-12 text-slate-400 animate-pulse">Memuat data mahasiswa...</div>
@@ -888,27 +1115,58 @@ export default function AdminDashboard() {
                           <span>Smt {s.semester || '?'}</span>
                         </div>
                         <div className="mt-2 inline-flex flex-wrap gap-2 text-xs">
-                          <span className="bg-slate-800 text-slate-300 px-2.5 py-1 rounded-md border border-slate-700 flex items-center gap-1.5">
+                          <button
+                            title="Klik untuk buat catatan ke PA ini"
+                            onClick={() => {
+                              const matchedAdvisor = advisorsList.find((a: any) => a.nama === s.advisor_name);
+                              if (matchedAdvisor) {
+                                setAdminNoteForm(prev => ({ ...prev, advisor_id: matchedAdvisor.id.toString(), notes: `Perhatian untuk mahasiswa ${s.nama} (${s.nim}) - IPK: ${Number(s.ipk || 0).toFixed(2)}. Mohon segera lakukan bimbingan akademik.` }));
+                              } else {
+                                setAdminNoteForm(prev => ({ ...prev, notes: `Perhatian untuk mahasiswa ${s.nama} (${s.nim}) - IPK: ${Number(s.ipk || 0).toFixed(2)}. Mohon segera lakukan bimbingan akademik.` }));
+                              }
+                              setShowAdminNoteModal(true);
+                            }}
+                            className="bg-slate-800 hover:bg-orange-500/20 hover:border-orange-500/40 hover:text-orange-300 text-slate-300 px-2.5 py-1 rounded-md border border-slate-700 flex items-center gap-1.5 transition-all cursor-pointer"
+                          >
                             <Users size={12} className="text-slate-400" />
-                            PA: <strong className="text-slate-200">{s.advisor_name}</strong>
-                          </span>
+                            PA: <strong className="text-slate-200">{s.advisor_name || 'Belum ada'}</strong>
+                            <Bell size={10} className="ml-1 opacity-50" />
+                          </button>
                         </div>
                       </div>
-                      
+
                       <div className="flex items-center gap-4 w-full md:w-auto justify-between md:justify-end">
                         <div className="text-right">
                           <span className="block text-2xl font-black text-red-400">{Number(s.ipk || 0).toFixed(2)}</span>
                           <span className="text-[10px] uppercase text-slate-500 font-bold">IPK Terakhir</span>
                         </div>
-                        <button 
-                          onClick={() => {
-                             setRiskModalOpen(false);
-                             openTranscript(s);
-                          }}
-                          className="px-4 py-2 bg-blue-600 hover:bg-blue-500 active:bg-blue-700 text-white text-sm font-semibold rounded-lg shadow-lg shadow-blue-900/20 transition-all flex items-center gap-2"
-                        >
-                          <Activity size={16} /> Open Transkrip
-                        </button>
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => {
+                              // Buka transcript tanpa menutup risk modal
+                              openTranscript(s);
+                            }}
+                            className="px-3 py-2 bg-blue-600 hover:bg-blue-500 active:bg-blue-700 text-white text-sm font-semibold rounded-lg shadow-lg shadow-blue-900/20 transition-all flex items-center gap-2"
+                          >
+                            <Activity size={15} /> Transkrip
+                          </button>
+                          <button
+                            onClick={() => {
+                              // Pre-fill catatan PA dari data mahasiswa ini
+                              const matchedAdvisor = advisorsList.find((a: any) => a.nama === s.advisor_name);
+                              if (matchedAdvisor) {
+                                setAdminNoteForm(prev => ({ ...prev, advisor_id: matchedAdvisor.id.toString(), notes: `Perhatian untuk mahasiswa ${s.nama} (${s.nim}) - IPK: ${Number(s.ipk || 0).toFixed(2)}. Mohon segera lakukan bimbingan.` }));
+                              } else {
+                                setAdminNoteForm(prev => ({ ...prev, notes: `Perhatian untuk mahasiswa ${s.nama} (${s.nim}) - IPK: ${Number(s.ipk || 0).toFixed(2)}. Mohon segera lakukan bimbingan.` }));
+                              }
+                              setShowAdminNoteModal(true);
+                            }}
+                            title={`Buat catatan ke PA: ${s.advisor_name}`}
+                            className="px-3 py-2 bg-orange-500/20 hover:bg-orange-500/40 text-orange-400 border border-orange-500/30 text-sm font-semibold rounded-lg transition-all flex items-center gap-2"
+                          >
+                            <Bell size={15} /> Catat PA
+                          </button>
+                        </div>
                       </div>
                     </div>
                   ))}
@@ -930,14 +1188,14 @@ export default function AdminDashboard() {
               </h2>
               <p className="text-sm text-slate-400 mt-1">Daftar teguran, informasi, dan peringatan yang disiarkan ke PA</p>
             </div>
-            <button 
+            <button
               onClick={() => setShowAdminNoteModal(true)}
               className="bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded-lg text-sm font-semibold transition flex flex-row items-center gap-2"
             >
               <Activity size={16} /> Buat Catatan Baru
             </button>
           </div>
-          
+
           <div className="space-y-4">
             {sentAdminNotes.length === 0 ? (
               <div className="text-center py-12 text-slate-500 border border-dashed border-slate-700/50 rounded-xl bg-[#0f172a]/30">Belum ada catatan yang dikirim ke PA.</div>
@@ -946,12 +1204,11 @@ export default function AdminDashboard() {
                 <div>
                   <div className="flex items-center gap-3 mb-2">
                     <span className="font-bold text-white uppercase text-sm">PA Target: {note.advisor_name}</span>
-                    <span className={`px-2 py-0.5 text-[10px] font-bold uppercase rounded ${
-                        note.status === 'Urgent' ? 'bg-red-500/20 text-red-500' :
+                    <span className={`px-2 py-0.5 text-[10px] font-bold uppercase rounded ${note.status === 'Urgent' ? 'bg-red-500/20 text-red-500' :
                         note.status === 'Warning' ? 'bg-orange-500/20 text-orange-400' :
-                        'bg-blue-500/20 text-blue-400'
+                          'bg-blue-500/20 text-blue-400'
                       }`}>
-                        {note.type} - {note.status}
+                      {note.type} - {note.status}
                     </span>
                     <span className="text-xs text-slate-500 font-medium">{note.date}</span>
                   </div>
@@ -1056,24 +1313,24 @@ export default function AdminDashboard() {
           <div className="bg-[#1e293b] rounded-2xl w-full max-w-md border border-[#334155] shadow-2xl flex flex-col max-h-[85vh]">
             <div className="p-5 border-b border-[#334155] flex justify-between items-center bg-[#1a2333]/80 shrink-0">
               <h3 className="font-bold text-white">Pengaturan Profil & Akun</h3>
-              <button 
+              <button
                 onClick={() => setShowProfileModal(false)}
                 className="text-slate-400 hover:text-white"
               >
                 <X size={20} />
               </button>
             </div>
-            
+
             <form onSubmit={handleUpdateProfile} className="p-6 space-y-4 overflow-y-auto flex-1">
               <div>
                 <label className="block text-xs font-medium text-slate-400 mb-1">Upload Foto Profil (Opsional)</label>
-                <input 
+                <input
                   type="file" accept="image/*"
                   onChange={e => {
                     const file = e.target.files?.[0];
                     if (file) {
                       const reader = new FileReader();
-                      reader.onload = (ev) => setProfileForm({...profileForm, profile_picture: ev.target?.result as string});
+                      reader.onload = (ev) => setProfileForm({ ...profileForm, profile_picture: ev.target?.result as string });
                       reader.readAsDataURL(file);
                     }
                   }}
@@ -1083,21 +1340,21 @@ export default function AdminDashboard() {
 
               <div>
                 <label className="block text-xs font-medium text-slate-400 mb-1">Username Login</label>
-                <input 
+                <input
                   type="text"
                   required
                   value={profileForm.username}
-                  onChange={e => setProfileForm({...profileForm, username: e.target.value})}
+                  onChange={e => setProfileForm({ ...profileForm, username: e.target.value })}
                   className="w-full bg-[#0f172a] border border-[#334155] rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-red-500"
                 />
               </div>
 
               <div>
                 <label className="block text-xs font-medium text-slate-400 mb-1">Kata Sandi Baru</label>
-                <input 
+                <input
                   type="password"
                   value={profileForm.password}
-                  onChange={e => setProfileForm({...profileForm, password: e.target.value})}
+                  onChange={e => setProfileForm({ ...profileForm, password: e.target.value })}
                   placeholder="Isi hanya jika ingin mengganti sandi..."
                   className="w-full bg-[#0f172a] border border-[#334155] rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-red-500"
                 />
@@ -1105,20 +1362,20 @@ export default function AdminDashboard() {
 
               <div>
                 <label className="block text-xs font-medium text-slate-400 mb-1">Email Aktif</label>
-                <input 
+                <input
                   type="email"
                   value={profileForm.email}
-                  onChange={e => setProfileForm({...profileForm, email: e.target.value})}
+                  onChange={e => setProfileForm({ ...profileForm, email: e.target.value })}
                   className="w-full bg-[#0f172a] border border-[#334155] rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-red-500"
                 />
               </div>
 
               <div>
                 <label className="block text-xs font-medium text-slate-400 mb-1">Nomor WhatsApp (+62)</label>
-                <input 
+                <input
                   type="text"
                   value={profileForm.whatsapp}
-                  onChange={e => setProfileForm({...profileForm, whatsapp: e.target.value})}
+                  onChange={e => setProfileForm({ ...profileForm, whatsapp: e.target.value })}
                   placeholder="+628123456789"
                   className="w-full bg-[#0f172a] border border-[#334155] rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-green-500"
                 />

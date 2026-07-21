@@ -132,8 +132,48 @@ def stats_angkatan(db: Session = Depends(get_db), prodi_admin: ProdiAdmin = Depe
 
 @router.get("/stats/status")
 def stats_status(db: Session = Depends(get_db), prodi_admin: ProdiAdmin = Depends(get_prodi_user)):
-    res = db.query(Student.status, func.count(Student.id)).filter(Student.prodi == prodi_admin.prodi_name).group_by(Student.status).all()
-    return [{"name": s[0], "value": s[1]} for s in res]
+    subq = db.query(
+        AcademicRecord.student_id,
+        func.max(AcademicRecord.semester).label("max_semester")
+    ).group_by(AcademicRecord.student_id).subquery()
+    
+    all_recs = db.query(
+        Student.status,
+        AcademicRecord.status.label("rec_status"),
+        func.count(Student.id)
+    ).outerjoin(
+        subq, Student.id == subq.c.student_id
+    ).outerjoin(
+        AcademicRecord, 
+        (AcademicRecord.student_id == subq.c.student_id) & (AcademicRecord.semester == subq.c.max_semester)
+    ).filter(
+        Student.prodi == prodi_admin.prodi_name
+    ).group_by(Student.status, AcademicRecord.status).all()
+    
+    stats_map = {
+        "Zona Merah": 0,
+        "Zona Kuning": 0,
+        "Zona Hijau": 0,
+        "Aktif": 0
+    }
+    
+    for s_status, r_status, c in all_recs:
+        # Tentukan apakah benar-benar inaktif
+        if s_status in ["Drop Out", "Lulus", "Keluar", "Cuti", "Non Aktif"]:
+            stats_map[s_status] = stats_map.get(s_status, 0) + c
+        else:
+            # Jika aktif (atau data error bertuliskan 'Warning'/'Aman'), klasifikasikan berdasar rekaman
+            if r_status == "HIGH_RISK":
+                stats_map["Zona Merah"] += c
+            elif r_status == "Warning":
+                stats_map["Zona Kuning"] += c
+            elif r_status == "Aman":
+                stats_map["Zona Hijau"] += c
+            else:
+                stats_map["Aktif"] += c
+                
+    # Buang yg jumlahnya 0 agar bersih
+    return [{"name": k, "value": v} for k, v in stats_map.items() if v > 0]
 
 @router.get("/stats/semester")
 def stats_semester(db: Session = Depends(get_db), prodi_admin: ProdiAdmin = Depends(get_prodi_user)):

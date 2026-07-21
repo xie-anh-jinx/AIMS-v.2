@@ -63,6 +63,7 @@ def get_dashboard_overview(
         (AcademicRecord.student_id == subq.c.student_id) &
         (AcademicRecord.semester   == subq.c.max_semester)
     ).join(Student, Student.id == AcademicRecord.student_id).filter(
+        Student.status != "Lulus",
         AcademicRecord.status == "Aman"
     )
 
@@ -105,6 +106,20 @@ def get_semester_distribution(
     ).filter(Student.status == "Aktif").group_by(Student.semester).order_by(Student.semester).all()
     return [{"name": f"Sem {r.semester}", "value": r.count} for r in rows]
 
+@router.get("/stats/angkatan")
+def get_angkatan_distribution(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    if current_user.role != "ADMIN":
+        raise HTTPException(status_code=403, detail="Not authorized")
+    rows = db.query(
+        Student.angkatan,
+        func.count(Student.id).label("count")
+    ).group_by(Student.angkatan).order_by(Student.angkatan.desc()).all()
+    # Or just returning raw angkatan mapping
+    return [{"name": str(r.angkatan), "value": r.count} for r in rows]
+
 @router.get("/stats/status")
 def get_status_distribution(
     db: Session = Depends(get_db),
@@ -112,10 +127,14 @@ def get_status_distribution(
 ):
     if current_user.role != "ADMIN":
         raise HTTPException(status_code=403, detail="Not authorized")
+    
+    # Tampilkan semua status yang ada agar tidak ada mahasiswa yang "hilang"
+    # Status keaktifan NeoSIA: Aktif, Cuti, Lulus, Drop Out, Keluar, Non Aktif, Pindah
     rows = db.query(
         Student.status,
         func.count(Student.id).label("count")
-    ).group_by(Student.status).all()
+    ).group_by(Student.status).order_by(func.count(Student.id).desc()).all()
+    
     return [{"name": r.status, "value": r.count} for r in rows]
 
 @router.get("/stats/risk-per-prodi")

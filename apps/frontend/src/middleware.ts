@@ -7,9 +7,10 @@ export function middleware(request: NextRequest) {
   
   const path = request.nextUrl.pathname;
   const isLoginPage = path === '/login';
+  const isPublicPage = path === '/documentation';
 
   // Protect dashboard routes
-  if (!token && !isLoginPage) {
+  if (!token && !isLoginPage && !isPublicPage) {
     return NextResponse.redirect(new URL('/login', request.url));
   }
 

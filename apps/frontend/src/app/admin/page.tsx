@@ -100,6 +100,7 @@ export default function AdminDashboard() {
   const [advisorsList, setAdvisorsList] = useState<any[]>([]);
   const [submittingAdminNote, setSubmittingAdminNote] = useState(false);
   const [sentAdminNotes, setSentAdminNotes] = useState<any[]>([]);
+  const [selectedNote, setSelectedNote] = useState<any | null>(null);
 
   // Profile Update State
   const [showProfileModal, setShowProfileModal] = useState(false);
@@ -457,7 +458,7 @@ export default function AdminDashboard() {
   };
 
   return (
-    <div className="flex min-h-screen font-sans bg-[#0b1121] text-slate-300">
+    <div className="flex min-h-screen font-sans bg-[#0b1121] text-slate-300 overflow-x-hidden max-w-full">
 
       {/* ── Sidebar ─────────────────────────────────────────────────── */}
       {/* ── Sidebar ─────────────────────────────────────────────────── */}
@@ -499,7 +500,7 @@ export default function AdminDashboard() {
             return (
               <button key={id} onClick={() => { setActiveTab(id); if (id === 'Data Mahasiswa') applyFilters(); }}
                 className={`w-full flex items-center justify-between px-4 py-3 rounded-lg transition-all group ${active ? 'bg-red-500/10 text-red-400 border-l-4 border-red-500' : 'text-slate-400 hover:text-slate-200 hover:bg-[#1f2937] border-l-4 border-transparent'}`}>
-                <div className="flex items-center gap-3">
+                <div className="flex flex-wrap items-center gap-3 shrink-0">
                   <Icon size={18} className={active ? 'text-red-400' : 'text-slate-500 group-hover:text-slate-400'} />
                   <span className={`text-sm ${active ? 'font-semibold' : 'font-medium'}`}>{label}</span>
                 </div>
@@ -517,19 +518,36 @@ export default function AdminDashboard() {
       </aside>
 
       {/* ── Main Content ─────────────────────────────────────────────── */}
-      <main className="flex-1 md:ml-[260px] p-4 md:p-8 overflow-y-auto w-full">
-        <div className="max-w-[1200px] mx-auto w-full">
+      <main className="flex-1 md:ml-[260px] p-4 md:p-8 overflow-y-auto overflow-x-hidden w-full min-w-0 max-w-full">
+        <div className="max-w-[1200px] mx-auto w-full min-w-0">
 
           <div className="md:hidden flex items-center mb-6"><button onClick={() => setMobileMenuOpen(true)} className="text-slate-300 hover:text-white p-2 -ml-2"><Menu size={24} /></button></div>
           {/* Header */}
-          <div className="flex items-start justify-between mb-8">
-            <div>
-              <h1 className="text-2xl font-bold text-white">
-                Dashboard <span className="text-orange-500">Administrator</span>
+          {activeTab !== 'Riwayat Catatan PA' && (
+          <div className="w-full flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8 border-b border-[#334155]/40 pb-6">
+            <div className="min-w-0 flex-1">
+              <h1 className="text-xl sm:text-2xl font-bold text-white leading-tight">
+                {activeTab === 'Data Mahasiswa' ? (
+                  <>Data <span className="text-orange-500">Mahasiswa</span></>
+                ) : activeTab === 'Analisis Risiko' ? (
+                  <>Analisis Risiko <span className="text-orange-500">Akademik</span></>
+                ) : activeTab === 'Pengaturan' ? (
+                  <>Pengaturan <span className="text-orange-500">Sistem</span></>
+                ) : (
+                  <>Dashboard <span className="text-orange-500">Administrator</span></>
+                )}
               </h1>
-              <p className="text-[#64748b] text-sm mt-1">Monitoring & Manajemen Sistem AIMS</p>
+              <p className="text-[#64748b] text-xs sm:text-sm mt-1 leading-normal">
+                {activeTab === 'Data Mahasiswa'
+                    ? 'Manajemen data dan status seluruh mahasiswa'
+                    : activeTab === 'Analisis Risiko'
+                      ? 'Pemetaan risiko akademik berbasis kecerdasan buatan'
+                      : activeTab === 'Pengaturan'
+                        ? 'Konfigurasi integrasi notifikasi dan sistem AIMS'
+                        : 'Monitoring & Manajemen Sistem AIMS'}
+              </p>
             </div>
-            <div className="flex items-center gap-3">
+            <div className="flex flex-wrap items-center gap-3 shrink-0">
               <button
                 onClick={() => setShowAdminNoteModal(true)}
                 className="flex items-center gap-2 bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded-lg text-sm font-semibold transition"
@@ -542,6 +560,7 @@ export default function AdminDashboard() {
               </div>
             </div>
           </div>
+          )}
 
           {/* ── Tab: Dashboard ─────────────────────────────────────── */}
           {activeTab === 'Dashboard' && (
@@ -651,7 +670,7 @@ export default function AdminDashboard() {
                       <tr key={s.nim} className="hover:bg-[#334155]/20 transition">
                         <td className="py-4 px-5 text-xs font-mono text-slate-300">{s.nim}</td>
                         <td className="py-4 px-5">
-                          <div className="flex items-center gap-3">
+                          <div className="flex flex-wrap items-center gap-3 shrink-0">
                             <div className="w-7 h-7 rounded-full bg-indigo-500/20 text-indigo-400 flex items-center justify-center text-xs font-bold shrink-0">{s.nama.charAt(0)}</div>
                             <span className="font-semibold text-slate-200 text-[13px]">{s.nama}</span>
                           </div>
@@ -678,7 +697,7 @@ export default function AdminDashboard() {
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
                 {[
-                  { id: 'merah', label: 'Zona Merah (Kritis)', val: stats?.high_risk_students, sub: 'Mahasiswa dengan indikasi Drop Out tinggi (IPK < 2.0)', bg: 'bg-[#2c1316]', border: 'border-red-900/30', color: 'text-red-400', glow: 'bg-red-900/40' },
+                  { id: 'merah', label: 'Zona Merah (Kritis)', val: stats?.high_risk_students, sub: 'Mahasiswa indikasi DO (IPK < 2.0 / Melewati batas studi tanpa syarat lulus)', bg: 'bg-[#2c1316]', border: 'border-red-900/30', color: 'text-red-400', glow: 'bg-red-900/40' },
                   { id: 'kuning', label: 'Zona Kuning (Warning)', val: stats?.warning_students, sub: 'Performa akademik pas-pasan (IPK 2.0 - 2.74)', bg: 'bg-[#282111]', border: 'border-yellow-900/30', color: 'text-yellow-400', glow: 'bg-yellow-900/40' },
                   { id: 'hijau', label: 'Zona Hijau (Aman)', val: stats?.safe_students, sub: 'Trek akademik aman (IPK 2.75 ke atas)', bg: 'bg-[#0f291e]', border: 'border-green-900/30', color: 'text-green-400', glow: 'bg-green-900/40', disabled: true },
                 ].map(({ id, label, val, sub, bg, border, color, glow, disabled }) => (
@@ -1179,50 +1198,120 @@ export default function AdminDashboard() {
 
       {/* ── Tab: Riwayat Catatan PA ─────────────────────────────────────── */}
       {activeTab === 'Riwayat Catatan PA' && (
-        <div className="bg-[#1e293b] rounded-2xl border border-[#334155] p-6 shadow-xl">
-          <div className="flex justify-between items-center mb-6 border-b border-[#334155] pb-4">
+        <div className="bg-[#1e293b] rounded-2xl border border-[#334155] p-6 shadow-xl w-full">
+          {/* Combined Header inside panel */}
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-[#334155]/60 pb-6 mb-6">
             <div>
-              <h2 className="text-lg font-bold text-white flex items-center gap-2">
-                <Bell size={20} className="text-orange-500" />
-                Riwayat Catatan ke Penasihat Akademik
-              </h2>
-              <p className="text-sm text-slate-400 mt-1">Daftar teguran, informasi, dan peringatan yang disiarkan ke PA</p>
+              <h1 className="text-xl sm:text-2xl font-bold text-white flex items-center gap-2">
+                <Bell className="text-orange-500" size={24} />
+                Riwayat Catatan <span className="text-orange-500">ke Penasihat Akademik</span>
+              </h1>
+              <p className="text-slate-400 text-xs sm:text-sm mt-1">
+                Daftar teguran, informasi, dan peringatan yang disiarkan ke PA
+              </p>
             </div>
-            <button
-              onClick={() => setShowAdminNoteModal(true)}
-              className="bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded-lg text-sm font-semibold transition flex flex-row items-center gap-2"
-            >
-              <Activity size={16} /> Buat Catatan Baru
-            </button>
+            <div className="flex flex-wrap items-center gap-3 shrink-0">
+              <button
+                onClick={() => setShowAdminNoteModal(true)}
+                className="flex items-center gap-2 bg-orange-500 hover:bg-orange-600 text-white px-4 py-2.5 rounded-xl text-sm font-semibold transition shadow-lg shadow-orange-500/20"
+              >
+                <Bell size={16} /> Buat Catatan Baru
+              </button>
+              <div className="flex items-center gap-2 bg-[#0f172a] border border-[#334155] px-3.5 py-2 rounded-xl">
+                <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
+                <span className="text-xs text-slate-400 font-medium whitespace-nowrap">Sistem Aktif</span>
+              </div>
+            </div>
           </div>
 
-          <div className="space-y-4">
+          {/* Combined List inside panel */}
+          <div className="space-y-4 w-full">
             {sentAdminNotes.length === 0 ? (
-              <div className="text-center py-12 text-slate-500 border border-dashed border-slate-700/50 rounded-xl bg-[#0f172a]/30">Belum ada catatan yang dikirim ke PA.</div>
+              <div className="text-center py-12 text-slate-500 text-sm bg-[#0f172a] rounded-xl border border-dashed border-slate-700/50">
+                Belum ada catatan yang dikirim ke PA.
+              </div>
             ) : (sentAdminNotes.map((note) => (
-              <div key={note.id} className="bg-[#0f172a] p-5 rounded-xl border border-[#334155] hover:border-slate-500 transition-colors flex justify-between items-start">
-                <div>
-                  <div className="flex items-center gap-3 mb-2">
-                    <span className="font-bold text-white uppercase text-sm">PA Target: {note.advisor_name}</span>
-                    <span className={`px-2 py-0.5 text-[10px] font-bold uppercase rounded ${note.status === 'Urgent' ? 'bg-red-500/20 text-red-500' :
-                        note.status === 'Warning' ? 'bg-orange-500/20 text-orange-400' :
-                          'bg-blue-500/20 text-blue-400'
-                      }`}>
-                      {note.type} - {note.status}
-                    </span>
-                    <span className="text-xs text-slate-500 font-medium">{note.date}</span>
+              <div
+                key={note.id}
+                className="bg-[#0f172a] hover:bg-[#0f172a]/80 p-5 rounded-xl border border-[#334155] hover:border-slate-500 transition-all cursor-pointer group shadow-md space-y-3"
+                onClick={() => setSelectedNote(note)}
+              >
+                <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[#1e293b] pb-3">
+                  <div className="flex items-center gap-2.5">
+                    <div className={`w-3 h-3 rounded-full shrink-0 ${note.status === 'Urgent' ? 'bg-red-500 animate-pulse' : note.status === 'Warning' ? 'bg-orange-400' : 'bg-blue-400'}`} />
+                    <span className="font-bold text-white uppercase text-sm tracking-wide">{note.advisor_name}</span>
                   </div>
-                  <p className="text-sm text-slate-300 border-l-2 border-slate-700 pl-3 italic">"{note.notes}"</p>
+                  <div className="flex flex-wrap items-center gap-3 shrink-0">
+                    <span className={`px-2.5 py-0.5 text-[10px] font-bold uppercase rounded ${note.status === 'Urgent' ? 'bg-red-500/20 text-red-400 border border-red-500/30' : note.status === 'Warning' ? 'bg-orange-500/20 text-orange-400 border border-orange-500/30' : 'bg-blue-500/20 text-blue-400 border border-blue-500/30'}`}>
+                      {note.type} — {note.status}
+                    </span>
+                    <span className="text-xs text-slate-400 font-medium">{note.date}</span>
+                    <button
+                      onClick={(e) => { e.stopPropagation(); handleDeleteSentNote(note.id); }}
+                      className="opacity-0 group-hover:opacity-100 text-red-400/60 hover:text-red-400 transition p-1"
+                      title="Hapus"
+                    >
+                      <Trash size={14} />
+                    </button>
+                  </div>
                 </div>
-                <button
-                  onClick={() => handleDeleteSentNote(note.id)}
-                  className="bg-red-500/10 hover:bg-red-500/20 text-red-400 p-2 rounded-lg transition"
-                  title="Hapus / Arsipkan"
-                >
-                  <Trash size={18} />
-                </button>
+                <p className="text-sm text-slate-200 italic pl-3 border-l-2 border-orange-500/60 leading-relaxed">&ldquo;{note.notes}&rdquo;</p>
               </div>
             )))}
+          </div>
+        </div>
+      )}
+
+      {/* Note Detail Popup */}
+      {selectedNote && (
+        <div
+          className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+          onClick={() => setSelectedNote(null)}
+        >
+          <div
+            className="bg-[#0f172a] border border-[#1e293b] rounded-2xl w-full max-w-md shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div className="p-5 border-b border-[#1e293b] flex items-start justify-between">
+              <div className="flex flex-wrap items-center gap-3 shrink-0">
+                <div className={`w-3 h-3 rounded-full shrink-0 mt-0.5 ${selectedNote.status === 'Urgent' ? 'bg-red-500' : selectedNote.status === 'Warning' ? 'bg-orange-400' : 'bg-blue-400'}`} />
+                <div>
+                  <p className="text-xs text-slate-500 uppercase tracking-wider font-medium">PA Target</p>
+                  <p className="text-sm font-bold text-white uppercase">{selectedNote.advisor_name}</p>
+                </div>
+              </div>
+              <button onClick={() => setSelectedNote(null)} className="text-slate-500 hover:text-white p-1 transition">
+                <X size={18} />
+              </button>
+            </div>
+            {/* Meta */}
+            <div className="px-5 py-3 flex items-center gap-3 border-b border-[#1e293b]">
+              <span className={`px-2.5 py-1 text-[10px] font-bold uppercase rounded-md ${selectedNote.status === 'Urgent' ? 'bg-red-500/20 text-red-400' : selectedNote.status === 'Warning' ? 'bg-orange-500/20 text-orange-400' : 'bg-blue-500/20 text-blue-400'}`}>
+                {selectedNote.type} — {selectedNote.status}
+              </span>
+              <span className="text-xs text-slate-500 ml-auto">{selectedNote.date}</span>
+            </div>
+            {/* Message body */}
+            <div className="p-5">
+              <p className="text-xs text-slate-400 uppercase tracking-wider mb-2 font-semibold">Isi Pesan</p>
+              <p className="text-sm text-slate-200 leading-relaxed bg-[#1e293b] rounded-xl p-4 border border-[#334155] italic">&ldquo;{selectedNote.notes}&rdquo;</p>
+            </div>
+            {/* Footer */}
+            <div className="px-5 pb-5 flex justify-end gap-2">
+              <button
+                onClick={() => { handleDeleteSentNote(selectedNote.id); setSelectedNote(null); }}
+                className="px-3 py-2 text-xs font-semibold text-red-400 hover:bg-red-500/10 rounded-lg transition flex items-center gap-1.5"
+              >
+                <Trash size={13} /> Hapus
+              </button>
+              <button
+                onClick={() => setSelectedNote(null)}
+                className="px-4 py-2 text-xs font-semibold bg-[#1e293b] hover:bg-[#334155] text-slate-300 rounded-lg transition"
+              >
+                Tutup
+              </button>
+            </div>
           </div>
         </div>
       )}

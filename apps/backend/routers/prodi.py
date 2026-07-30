@@ -20,21 +20,25 @@ def get_prodi_user(current_user: User = Depends(get_current_user), db: Session =
         raise HTTPException(status_code=403, detail="Akses ditolak. Profil Kaprodi tidak ditemukan.")
     return prodi_admin
 
+from packages.shared.degree_rules import get_degree_rules
+
 # ─── Batas Risiko Akademik ──────
 IPK_HIGH_RISK  = 2.00   # IPK < 2.00 → Zona Merah
 IPK_WARNING    = 2.75   # IPK < 2.75 → Zona Kuning  
-MAX_STUDY_YRS  = 5      # Lebih dari 5 tahun aktif (S1) → Zona Kuning
 
-def _classify_active_student(angkatan: int, current_year: int = 2026) -> str:
+def _classify_active_student(angkatan: int, prodi: str = "S1", current_year: int = 2026) -> str:
     """Klasifikasi risiko mahasiswa Aktif tanpa data IPK,
-    berdasarkan lama studi (indikator awal yang valid secara akademis)."""
+    berdasarkan lama studi sesuai jenjang (S1, S2, S3)."""
+    if angkatan >= current_year:
+        return "hijau"
+    rules = get_degree_rules(prodi)
     years_enrolled = current_year - angkatan
-    if years_enrolled >= 7:    # > 7 tahun = potensi DO sangat tinggi
+    if years_enrolled >= rules["max_years"]:
         return "merah"
-    elif years_enrolled >= MAX_STUDY_YRS:  # > 5 tahun = peringatan
+    elif years_enrolled >= rules["warning_years"]:
         return "kuning"
     else:
-        return "hijau"  # Belum melewati batas normal
+        return "hijau"
 
 def get_associated_prodi_names(prodi_name: str) -> List[str]:
     name_lower = prodi_name.lower().strip()
@@ -68,13 +72,15 @@ def get_overview(db: Session = Depends(get_db), prodi_admin: ProdiAdmin = Depend
             continue
             
         students_with_rec.add(uid)
-        if r.status == "HIGH_RISK": high_risk += 1
+        if student and (student.angkatan >= 2026):
+            safe += 1
+        elif r.status == "HIGH_RISK": high_risk += 1
         elif r.status == "Warning": warning += 1
         elif r.status == "Aman": safe += 1
     # Analyze active students without AcademicRecord
     for s in students:
         if s.status == "Aktif" and s.id not in students_with_rec:
-            z = _classify_active_student(s.angkatan)
+            z = _classify_active_student(s.angkatan, s.prodi)
             if z == "merah":   high_risk += 1
             elif z == "kuning": warning += 1
             else:               safe += 1
@@ -215,11 +221,13 @@ def get_prodi_risk_students(
     if zone == "merah":
         query = query.filter(
             Student.status != "Lulus",
+            Student.angkatan < 2026,
             AcademicRecord.status == "HIGH_RISK"
         )
     elif zone == "kuning":
         query = query.filter(
             Student.status != "Lulus",
+            Student.angkatan < 2026,
             AcademicRecord.status == "Warning"
         )
     elif zone == "hijau":
@@ -260,7 +268,7 @@ def get_prodi_risk_students(
         for s in active_no_rec:
             if s.id in students_with_rec:
                 continue
-            z = _classify_active_student(s.angkatan)
+            z = _classify_active_student(s.angkatan, s.prodi)
             if z == zone:
                 adv = db.query(Advisor).filter(Advisor.id == s.advisor_id).first()
                 out.append({

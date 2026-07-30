@@ -629,7 +629,7 @@ export default function ProdiDashboard() {
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
                 {[
-                  { id: 'merah', label: 'Zona Merah (Kritis)', val: stats?.high_risk_students, sub: 'Mahasiswa dengan indikasi Drop Out tinggi (IPK < 2.0)', bg: 'bg-[#2c1316]', border: 'border-red-900/30', color: 'text-red-400', glow: 'bg-red-900/40' },
+                  { id: 'merah', label: 'Zona Merah (Kritis)', val: stats?.high_risk_students, sub: 'Mahasiswa indikasi DO (IPK < 2.0 / Melewati batas studi tanpa syarat lulus)', bg: 'bg-[#2c1316]', border: 'border-red-900/30', color: 'text-red-400', glow: 'bg-red-900/40' },
                   { id: 'kuning', label: 'Zona Kuning (Warning)', val: stats?.warning_students, sub: 'Performa akademik pas-pasan (IPK 2.0 - 2.74)', bg: 'bg-[#282111]', border: 'border-yellow-900/30', color: 'text-yellow-400', glow: 'bg-yellow-900/40' },
                   { id: 'hijau', label: 'Zona Hijau (Aman)', val: stats?.safe_students, sub: 'Trek akademik aman (IPK 2.75 ke atas)', bg: 'bg-[#0f291e]', border: 'border-green-900/30', color: 'text-green-400', glow: 'bg-green-900/40', disabled: true },
                 ].map(({ id, label, val, sub, bg, border, color, glow, disabled }) => (

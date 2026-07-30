@@ -558,22 +558,27 @@ export default function DocumentationPage() {
                   </div>
 
                   <div className="page-subtitle">Deteksi Dini Mahasiswa Berisiko</div>
-                  <div className="page-text"><p>Klasifikasi tingkat risiko akademik mahasiswa secara otomatis berdasarkan indikator yang telah ditetapkan:</p></div>
+                  <div className="page-text"><p>Klasifikasi tingkat risiko akademik mahasiswa secara otomatis berdasarkan indikator jenjang studi (S1, S2, S3):</p></div>
                   <div className="zone-badges">
                     <span className="zone-badge zone-safe">🟢 Zona Aman</span>
                     <span className="zone-badge zone-warn">🟡 Zona Perhatian</span>
                     <span className="zone-badge zone-danger">🔴 Zona Risiko Tinggi</span>
                   </div>
 
-                  <div className="page-subtitle" style={{marginTop:'0.5em'}}>Monitoring Proses Konseling</div>
-                  <div className="page-text"><p>Seluruh komunikasi dan tindak lanjut antara pimpinan, Dosen PA, dan mahasiswa terdokumentasi sebagai <strong>log aktivitas</strong> yang dapat dipantau secara transparan.</p></div>
-
-                  <div className="page-subtitle">Otomatisasi Notifikasi</div>
-                  <div className="notif-grid">
-                    <div className="notif-item"><span className="notif-icon">📋</span>Belum isi KRS</div>
-                    <div className="notif-item"><span className="notif-icon">💳</span>Belum registrasi</div>
-                    <div className="notif-item"><span className="notif-icon">📉</span>IPK/IPS di bawah batas</div>
-                    <div className="notif-item"><span className="notif-icon">⚠️</span>Status perlu perhatian</div>
+                  <div className="page-subtitle" style={{marginTop:'0.5em'}}>Batas SKS &amp; Masa Studi Maksimal</div>
+                  <div className="notif-grid" style={{gridTemplateColumns:'1fr'}}>
+                    <div className="notif-item" style={{justifyContent:'space-between', fontSize:'0.75em'}}>
+                      <span>🎓 <strong>S1 (Sarjana)</strong>: Min <strong>144 SKS</strong></span>
+                      <span>Maks <strong>14 Semester</strong> (7 Thn)</span>
+                    </div>
+                    <div className="notif-item" style={{justifyContent:'space-between', fontSize:'0.75em'}}>
+                      <span>🎓 <strong>S2 (Magister)</strong>: Min <strong>46 SKS</strong></span>
+                      <span>Maks <strong>6 Semester</strong> (3 Thn)</span>
+                    </div>
+                    <div className="notif-item" style={{justifyContent:'space-between', fontSize:'0.75em'}}>
+                      <span>🎓 <strong>S3 (Doktor)</strong>: Min <strong>65 SKS</strong></span>
+                      <span>Maks <strong>10 Semester</strong> (5 Thn)</span>
+                    </div>
                   </div>
                 </div>
                 <div className="page-footer">

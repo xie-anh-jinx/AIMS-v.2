@@ -6,6 +6,8 @@ import logging
 from typing import List, Dict, Optional
 from dataclasses import dataclass
 
+from packages.shared.degree_rules import get_degree_level, get_degree_rules
+
 logger = logging.getLogger("RuleEngine")
 
 @dataclass
@@ -37,6 +39,14 @@ class RuleEngine:
         ipk = latest.get("ipk", 0.0)
         ips = latest.get("ips", 0.0)
 
+        prodi_name = student.get("prodi", "")
+        level = get_degree_level(prodi_name)
+        rules = get_degree_rules(prodi_name)
+
+        min_sks = rules["min_sks"]
+        max_sem = rules["max_semesters"]
+        warn_sem = rules["warning_semesters"]
+
         base = dict(
             student_id=student["id"],
             student_nim=student["nim"],
@@ -44,41 +54,53 @@ class RuleEngine:
             student_whatsapp=student.get("nomor_whatsapp", ""),
         )
 
-        # ── Rule 1: HIGH RISK — Long Study + Low SKS ─────────────────────────
-        if sem >= 8 and sks < 120:
+        from packages.shared.degree_rules import evaluate_academic_risk
+        calculated_risk = evaluate_academic_risk(prodi_name, sem, sks, ipk)
+        
+        # ── Rule 1: HIGH RISK (Zona Merah Terpadu) ──
+        if calculated_risk == "HIGH_RISK":
+            # Tentukan alasan spesifik untuk pesan WhatsApp
+            if ipk < 2.0:
+                reason = f"IPK Anda sangat rendah ({ipk:.2f})."
+            elif sem >= max_sem:
+                reason = f"Anda telah mencapai/melewati batas maksimal masa studi ({sem}/{max_sem} Semester)."
+            else:
+                reason = f"Performa akademik Anda berada di Zona Merah (SKS: {sks}, IPK: {ipk:.2f})."
+                
             actions.append(RuleAction(
                 **base,
-                rule_name="LONG_STUDY_LOW_SKS",
+                rule_name="ACADEMIC_HIGH_RISK",
                 action="NOTIFY_ADVISOR",
                 severity="HIGH",
                 message=(
-                    f"⚠️ *PERINGATAN RISIKO DO*\n\n"
+                    f"🚨 *PERINGATAN ZONA MERAH (DO)*\n\n"
                     f"Mahasiswa: *{student['nama']}* ({student['nim']})\n"
-                    f"Semester: {sem} | Total SKS: {sks} (min. 120)\n\n"
-                    f"Mahasiswa berisiko tidak lulus tepat waktu. "
-                    f"Segera lakukan konsultasi dengan PA."
+                    f"Prodi: {prodi_name} ({level})\n"
+                    f"Semester: {sem} | Total SKS: {sks} | IPK: {ipk:.2f}\n\n"
+                    f"Alasan: {reason}\n"
+                    f"Segera lakukan konsultasi wajib dengan Dosen PA."
                 ),
                 notify_advisor=True
             ))
-
-        # ── Rule 2: IPK Below Minimum ────────────────────────────────────────
-        if ipk < 2.0:
+            
+        # ── Rule 2: WARNING (Zona Kuning) ──
+        elif calculated_risk == "Warning":
             actions.append(RuleAction(
                 **base,
-                rule_name="LOW_IPK",
-                action="NOTIFY_ADVISOR",
-                severity="HIGH",
+                rule_name="ACADEMIC_WARNING",
+                action="SEND_REMINDER",
+                severity="MEDIUM",
                 message=(
-                    f"📉 *IPK DI BAWAH STANDAR*\n\n"
-                    f"Mahasiswa: *{student['nama']}* ({student['nim']})\n"
-                    f"IPK Saat Ini: *{ipk:.2f}* (standar minimum: 2.00)\n\n"
-                    f"Harap segera konsultasi dengan Dosen PA."
+                    f"⚠️ *PERINGATAN ZONA KUNING*\n\n"
+                    f"Halo {student['nama']}, performa akademik Anda berada di ambang batas peringatan.\n"
+                    f"Semester: {sem} | Total SKS: {sks} | IPK: {ipk:.2f}\n\n"
+                    f"Tingkatkan prestasi Anda dan jangan ragu berdiskusi dengan Dosen PA."
                 ),
                 notify_advisor=True
             ))
 
         # ── Rule 3: IPS Warning ───────────────────────────────────────────────
-        elif ips < 2.0 and ipk >= 2.0:
+        if ips < 2.0 and calculated_risk != "HIGH_RISK":
             actions.append(RuleAction(
                 **base,
                 rule_name="LOW_IPS_WARNING",
@@ -106,38 +128,6 @@ class RuleEngine:
                         f"Mahasiswa: *{student['nama']}* ({student['nim']})\n"
                         f"IPK sebelumnya: {prev_ipk:.2f} → sekarang: {ipk:.2f}\n\n"
                         f"Penurunan IPK terdeteksi. Pertimbangkan sesi konsultasi."
-                    ),
-                    notify_advisor=True
-                ))
-
-        # ── Rule 5: Explicit Record Level HIGH_RISK or Warning status ────────
-        rec_status = latest.get("status")
-        if rec_status == "HIGH_RISK":
-            if not any(a.rule_name == "LOW_IPK" for a in actions):
-                actions.append(RuleAction(
-                    **base,
-                    rule_name="EXPLICIT_HIGH_RISK",
-                    action="NOTIFY_ADVISOR",
-                    severity="HIGH",
-                    message=(
-                        f"🚨 *PERINGATAN STATUS RISIKO TINGGI*\n\n"
-                        f"Mahasiswa: *{student['nama']}* ({student['nim']})\n"
-                        f"Status Evaluasi: *HIGH_RISK* (SKS: {sks}, IPK: {ipk:.2f})\n\n"
-                        f"Mahasiswa dalam kategori risiko tinggi. Segera jadwalkan konsultasi."
-                    ),
-                    notify_advisor=True
-                ))
-        elif rec_status == "Warning":
-            if not any(a.rule_name in ["LOW_IPS_WARNING", "CONSECUTIVE_IPK_DROP"] for a in actions):
-                actions.append(RuleAction(
-                    **base,
-                    rule_name="EXPLICIT_WARNING",
-                    action="SEND_REMINDER",
-                    severity="MEDIUM",
-                    message=(
-                        f"⚠️ *PERINGATAN STATUS AKADEMIS*\n\n"
-                        f"Halo {student['nama']}, status akademis Anda memerlukan perhatian (Warning).\n"
-                        f"Segera tingkatkan performa akademik Anda dan konsultasi dengan Dosen PA."
                     ),
                     notify_advisor=True
                 ))

@@ -95,6 +95,12 @@ def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(), db:
             prodi_name = prodi_admin.prodi_name
     elif user.role == "ADMIN":
         user_name = "Administrator"
+    elif user.role == "DEKAN":
+        user_name = "Prof. Dr. Andi Muhammad Akhmar, S.S., M.Hum"
+    elif user.role == "WD1":
+        user_name = "Dr. Ilham, S.S., M.Hum"
+    elif user.role == "KASUBAG_AKADEMIK":
+        user_name = "Kasubag Akademik FIB"
 
     return {
         "access_token": access_token, 

@@ -24,7 +24,7 @@ class ProfileUpdateRequest(BaseModel):
     telegram_username: str = None
 
 def check_student_access(student: Student, current_user: User, db: Session):
-    if current_user.role == "ADMIN":
+    if current_user.role in ["ADMIN", "DEKAN", "WD1", "KASUBAG_AKADEMIK"]:
         return
 
     elif current_user.role == "STUDENT":
@@ -74,6 +74,8 @@ def get_student(nim: str, db: Session = Depends(get_db), current_user: User = De
     check_student_access(student, current_user, db)
     return student
 
+from packages.shared.degree_rules import get_degree_rules
+
 @router.get("/{nim}/transcript", response_model=List[GradeResponse])
 def get_student_transcript(
     nim: str, 
@@ -90,11 +92,11 @@ def get_student_transcript(
     has_grades = db.query(Grade).filter(Grade.student_id == student.id).first() is not None
 
     # --- Attempt Neosia API (real data source) and Sync DB ---
-    # Only request Neosia API if we don't have grades yet or force_sync is requested
-    if NEOSIA_TOKEN and (not has_grades or force_sync):
+    token_to_use = NEOSIA_TOKEN or os.getenv("NEOSIA_TOKEN", "")
+    if token_to_use:
         try:
             neosia_url = f"{NEOSIA_API_BASE}/api/admin/transkrip/getTranskripMahasiswa?nim={nim}"
-            headers = {"Authorization": f"Bearer {NEOSIA_TOKEN}", "Accept": "application/json"}
+            headers = {"Authorization": f"Bearer {token_to_use}", "Accept": "application/json"}
             with httpx.Client(timeout=10) as client:
                 r = client.get(neosia_url, headers=headers)
             if r.status_code == 200:
@@ -105,11 +107,31 @@ def get_student_transcript(
                 ipk_dict = data.get("current_indeks_prestasi", {})
                 real_ipk = float(ipk_dict.get("indeks_prestasi_kumulatif", 0.0) or 0.0)
                 
+                deg_rules = get_degree_rules(student.prodi)
+                max_sem_limit = deg_rules["max_semesters"]
+                curr_sem = student.semester or 2
+
                 status_str = "Aman"
-                if real_ipk < 2.0: status_str = "HIGH_RISK"
-                elif real_ipk < 2.75: status_str = "Warning"
+                if student.angkatan >= 2026:
+                    status_str = "Aman"
+                elif real_ipk < 2.0 or curr_sem >= max_sem_limit:
+                    status_str = "HIGH_RISK"
+                elif real_ipk < 2.75 or curr_sem >= deg_rules["warning_semesters"]:
+                    status_str = "Warning"
                 
-                valid_sks = sum(int(t.get("sks") or 0) for t in transkrips if t.get("is_used") == 1)
+                # Filter only valid used items (is_used == 1) and deduplicate by kode (keeping highest nilai_angka)
+                valid_map = {}
+                for t in transkrips:
+                    if t.get("is_used") != 1: continue
+                    kode_mk = t.get("kode_mata_kuliah")
+                    if not kode_mk: continue
+                    bobot_val = float(t.get("nilai_angka") or 0.0)
+                    if kode_mk not in valid_map or bobot_val >= float(valid_map[kode_mk].get("nilai_angka") or 0.0):
+                        valid_map[kode_mk] = t
+
+                valid_transkrips = list(valid_map.values())
+                valid_sks = sum(int(t.get("sks") or 0) for t in valid_transkrips)
+                
                 latest_rec = db.query(AcademicRecord).filter(AcademicRecord.student_id == student.id).first()
                 if latest_rec:
                     latest_rec.ipk = real_ipk
@@ -119,29 +141,27 @@ def get_student_transcript(
                     new_rec = AcademicRecord(student_id=student.id, semester=student.semester or 2, ipk=real_ipk, ips=real_ipk, sks=valid_sks, status=status_str)
                     db.add(new_rec)
                 
-                if transkrips:
-                    # Wipe dirty polluted grades from old syncing bug
+                if valid_transkrips:
+                    # Wipe old grades for clean update
                     db.query(Grade).filter(Grade.student_id == student.id).delete()
                     
-                    for t in transkrips:
-                        if t.get("is_used") != 1: continue
-                        
+                    for t in valid_transkrips:
                         kode_mk = t.get("kode_mata_kuliah")
-                        if not kode_mk: continue
+                        nama_mk = t.get("nama_mata_kuliah") or (t.get("mata_kuliah") or {}).get("nama_resmi") or "Mata Kuliah"
                             
                         # 1. Upsert Course
                         course = db.query(Course).filter(Course.kode == kode_mk).first()
                         if not course:
                             course = Course(
                                 kode=kode_mk,
-                                nama=t.get("nama_mata_kuliah", "Mata Kuliah"),
+                                nama=nama_mk,
                                 sks=int(t.get("sks") or 0),
                                 semester=t.get("id_semester")
                             )
                             db.add(course)
                             db.flush() # flush to get course.id
                         else:
-                            course.nama = t.get("nama_mata_kuliah", course.nama)
+                            course.nama = nama_mk
                             course.sks = int(t.get("sks") or course.sks)
                         
                         # Hitung Semester Relatif
@@ -179,7 +199,7 @@ def get_student_transcript(
         except Exception as e:
             print(f"[WARN] Neosia transcript fetch failed for {nim}: {e}")
 
-    # --- Fallback & Normalized Return: local DB ---
+    # --- Normalized Return: local DB ---
     grades = db.query(Grade).filter(Grade.student_id == student.id).all()
     return grades
 

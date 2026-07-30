@@ -333,8 +333,16 @@ export default function AdvisorDashboard() {
 
   return (
     <div className="flex min-h-screen">
+      {/* Mobile Overlay */}
+      {mobileMenuOpen && (
+        <div 
+          className="fixed inset-0 bg-black/60 z-40 md:hidden backdrop-blur-sm" 
+          onClick={() => setMobileMenuOpen(false)} 
+        />
+      )}
+
       {/* Sidebar */}
-      <aside className="w-[280px] bg-[#111827] flex flex-col fixed h-full z-20 border-r border-[#1f2937]">
+      <aside className={`w-[280px] bg-[#111827] flex flex-col fixed h-full z-50 border-r border-[#1f2937] transition-transform duration-300 ${mobileMenuOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"}`}>
         <div className="p-6 pb-6">
           <div className="flex flex-col items-center justify-center text-center mb-6">
             <div className="w-20 h-20 rounded-xl overflow-hidden bg-gradient-to-tr from-slate-700 to-slate-800 border border-slate-600 mb-3 flex items-center justify-center text-white">
@@ -512,9 +520,9 @@ export default function AdvisorDashboard() {
 
               {/* Full Student List */}
               <div className="glass-panel p-6">
-                <div className="flex items-center justify-between mb-5">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-5">
                   <h3 className="font-semibold text-white">Daftar Mahasiswa Bimbingan</h3>
-                  <div className="flex gap-2">
+                  <div className="flex flex-wrap gap-2">
                     {[
                       { key: 'all', label: 'Semua' },
                       { key: 'risk', label: 'Risiko' },
@@ -532,7 +540,7 @@ export default function AdvisorDashboard() {
                 </div>
                 <div className="space-y-3">
                   {filtered.map(s => (
-                    <div key={s.nim} className={`flex items-center justify-between p-4 rounded-xl ${getRiskColor(s.nim)} transition hover:bg-white/5`}>
+                    <div key={s.nim} className={`flex flex-col sm:flex-row sm:items-center justify-between p-4 rounded-xl gap-4 ${getRiskColor(s.nim)} transition hover:bg-white/5`}>
                       <div className="flex items-center gap-3">
                         <div className="w-9 h-9 rounded-full bg-gradient-to-tr from-purple-500 to-pink-500 flex items-center justify-center text-white text-sm font-bold">
                           {s.nama.charAt(0)}
@@ -542,7 +550,7 @@ export default function AdvisorDashboard() {
                           <p className="text-xs text-slate-400">{s.nim} · Semester {s.semester} · {s.prodi}</p>
                         </div>
                       </div>
-                      <div className="flex items-center gap-4">
+                      <div className="flex flex-wrap items-center gap-3 sm:gap-4 w-full sm:w-auto justify-between sm:justify-end">
                         <div className="text-right">
                           <p className="text-sm font-bold text-white">{records[s.nim]?.ipk?.toFixed(2) || '-'}</p>
                           <p className="text-xs text-slate-400">IPK</p>
@@ -631,25 +639,37 @@ export default function AdvisorDashboard() {
                 {consultations.length === 0 ? (
                   <div className="text-center py-10 text-slate-500 text-sm">Belum ada catatan konsultasi. Pilih mahasiswa untuk menjadwalkan.</div>
                 ) : consultations.map((log, i) => (
-                  <div key={i} className="flex gap-4 items-center bg-slate-800/30 p-4 rounded-xl border border-white/5">
-                    <div className="w-10 h-10 rounded-full bg-slate-700 flex items-center justify-center text-slate-300 font-bold">
-                      {log.nama.charAt(0)}
-                    </div>
-                    <div className="flex-1">
-                      <p className="text-sm font-semibold text-white">{log.nama}</p>
-                      <p className="text-xs text-slate-400">{log.type} · {log.date}</p>
-                    </div>
-                    <div className="flex gap-2 items-center">
-                      <span className={`text-xs font-medium px-3 py-1 rounded-full ${log.status === 'Selesai' ? 'bg-green-500/20 text-green-400' : 'bg-yellow-500/20 text-yellow-400'}`}>
-                        {log.status}
-                      </span>
-                      <button
-                        onClick={() => hideConsultationData(log.id)}
-                        className="text-slate-500 hover:text-red-400 p-2 rounded-lg transition"
-                        title="Hapus riwayat"
-                      >
-                        <Trash size={16} />
-                      </button>
+                  <div key={i} className="bg-slate-800/30 p-4 rounded-xl border border-white/5">
+                    <div className="flex gap-4 items-start">
+                      <div className="w-10 h-10 rounded-full bg-slate-700 flex items-center justify-center text-slate-300 font-bold flex-shrink-0">
+                        {log.nama.charAt(0)}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex flex-wrap items-center justify-between gap-2 mb-1">
+                          <div>
+                            <p className="text-sm font-semibold text-white">{log.nama}</p>
+                            <p className="text-xs text-slate-400">{log.type} · {log.date}</p>
+                          </div>
+                          <div className="flex gap-2 items-center">
+                            <span className={`text-xs font-medium px-3 py-1 rounded-full ${log.status === 'Selesai' ? 'bg-green-500/20 text-green-400' : log.status === 'Warning' ? 'bg-red-500/20 text-red-400' : 'bg-yellow-500/20 text-yellow-400'}`}>
+                              {log.status}
+                            </span>
+                            <button
+                              onClick={() => hideConsultationData(log.id)}
+                              className="text-slate-500 hover:text-red-400 p-2 rounded-lg transition"
+                              title="Hapus riwayat"
+                            >
+                              <Trash size={16} />
+                            </button>
+                          </div>
+                        </div>
+                        {log.notes && (
+                          <div className="mt-2 p-3 bg-slate-900/50 rounded-lg border border-white/5">
+                            <p className="text-xs text-slate-400 font-medium mb-1">📝 Pesan ke Mahasiswa:</p>
+                            <p className="text-sm text-slate-200 leading-relaxed whitespace-pre-wrap">{log.notes}</p>
+                          </div>
+                        )}
+                      </div>
                     </div>
                   </div>
                 ))}
@@ -659,21 +679,67 @@ export default function AdvisorDashboard() {
 
           {activeNav === 'Notifikasi' && (
             <div className="glass-panel p-6">
-              <h3 className="font-semibold text-white mb-6">Pemberitahuan Sistem (Engine Notifikasi)</h3>
-              <div className="space-y-4">
-                <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-xl relative overflow-hidden">
-                  <div className="absolute left-0 top-0 h-full w-1 bg-red-500" />
-                  <h4 className="text-sm font-bold text-white mb-1">🚨 Notifikasi HIGH_RISK Terdeteksi</h4>
-                  <p className="text-xs text-slate-300 mb-2">3 mahasiswa terdeteksi berada di bawah ambang batas aman pada proses evaluasi otomatis jam 00:00 hari ini.</p>
-                  <p className="text-xs text-red-300">Aksi sistem otomatis: Broadcast peringatan via WA telah diluncurkan.</p>
+              <div className="flex items-center gap-3 mb-6">
+                <div className="w-10 h-10 rounded-full bg-orange-500/20 flex items-center justify-center text-orange-400">
+                  <Bell size={20} />
                 </div>
-
-                <div className="p-4 bg-blue-500/10 border border-blue-500/20 rounded-xl relative overflow-hidden">
-                  <div className="absolute left-0 top-0 h-full w-1 bg-blue-500" />
-                  <h4 className="text-sm font-bold text-white mb-1">Persetujuan KRS Dibuka</h4>
-                  <p className="text-xs text-slate-300">Mohon melakukan pemantauan mahasiswa untuk persetujuan KRS maksimal tanggal 25.</p>
+                <div>
+                  <h3 className="font-bold text-white text-lg">Catatan dari Administrator & Prodi</h3>
+                  <p className="text-xs text-slate-400">Pesan dan arahan yang ditujukan kepada Anda</p>
                 </div>
               </div>
+
+              {adminNotes.length === 0 ? (
+                <div className="text-center py-12 text-slate-500 border border-dashed border-slate-700/50 rounded-xl bg-slate-900/20">
+                  <Bell size={32} className="mx-auto mb-3 opacity-30" />
+                  <p className="text-sm">Tidak ada catatan atau pesan saat ini.</p>
+                  <p className="text-xs mt-1">Catatan dari Administrator dan Prodi akan muncul di sini.</p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {adminNotes.map((note) => (
+                    <div key={note.id} className={`p-4 rounded-xl border relative overflow-hidden ${
+                      note.status === 'Urgent' ? 'bg-red-500/10 border-red-500/20' :
+                      note.status === 'Warning' ? 'bg-orange-500/10 border-orange-500/20' :
+                      'bg-blue-500/10 border-blue-500/20'
+                    }`}>
+                      <div className={`absolute left-0 top-0 h-full w-1 ${
+                        note.status === 'Urgent' ? 'bg-red-500' :
+                        note.status === 'Warning' ? 'bg-orange-400' :
+                        'bg-blue-500'
+                      }`} />
+                      <div className="pl-2">
+                        <div className="flex flex-wrap items-center gap-2 mb-2">
+                          <span className={`px-2.5 py-1 text-[10px] font-bold uppercase rounded-md tracking-wider ${
+                            note.status === 'Urgent' ? 'bg-red-500/20 text-red-400 border border-red-500/30' :
+                            note.status === 'Warning' ? 'bg-orange-500/20 text-orange-400 border border-orange-500/30' :
+                            'bg-blue-500/20 text-blue-400 border border-blue-500/30'
+                          }`}>
+                            {note.type}
+                          </span>
+                          <span className={`px-2 py-0.5 text-[10px] font-semibold rounded ${
+                            note.status === 'Urgent' ? 'bg-red-500/10 text-red-400' :
+                            note.status === 'Warning' ? 'bg-orange-500/10 text-orange-400' :
+                            'bg-green-500/10 text-green-400'
+                          }`}>
+                            {note.status === 'Urgent' ? '🔴 Urgent' : note.status === 'Warning' ? '🟡 Warning' : '🟢 Info'}
+                          </span>
+                          <span className="text-xs text-slate-500 ml-auto">{note.date}</span>
+                        </div>
+                        <p className="text-sm text-slate-200 leading-relaxed">{note.notes}</p>
+                        {note.status === 'Selesai' && (
+                          <button
+                            onClick={() => hideAdminNote(note.id)}
+                            className="mt-3 text-xs text-slate-500 hover:text-red-400 flex items-center gap-1 transition"
+                          >
+                            <Trash size={12} /> Tandai sudah dibaca
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           )}
 

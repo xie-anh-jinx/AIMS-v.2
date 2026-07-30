@@ -49,8 +49,10 @@ NEOSIA_STATUS_MAP = {
     "N": "Non Aktif",
 }
 
-def compute_risk(ipk: float) -> str:
+def compute_risk(ipk: float, angkatan: int = 2020, semester: int = 1) -> str:
     """Hitung klasifikasi risiko akademik berdasarkan IPK."""
+    if angkatan >= 2026:
+        return "Aman"
     if ipk < 2.0:   return "HIGH_RISK"
     if ipk < 2.75:  return "Warning"
     return "Aman"
@@ -93,27 +95,29 @@ def sync_all_transcripts():
                     ipk_dict   = data.get("current_indeks_prestasi", {})
                     ipk        = float(ipk_dict.get("indeks_prestasi_kumulatif", 0.0) or 0.0)
 
-                    added_courses = set()
-                    total_sks     = sum(int(t.get("sks", 0) or 0) for t in transkrips if t.get("is_used") == 1)
-                    max_semester  = 1
+                    # Filter is_used == 1 and deduplicate by kode (keeping highest nilai_angka)
+                    valid_map = {}
+                    for t in transkrips:
+                        if t.get("is_used") != 1:
+                            continue
+                        kode = t.get("kode_mata_kuliah")
+                        if not kode:
+                            continue
+                        bobot_val = float(t.get("nilai_angka") or 0.0)
+                        if kode not in valid_map or bobot_val >= float(valid_map[kode].get("nilai_angka") or 0.0):
+                            valid_map[kode] = t
+
+                    valid_transkrips = list(valid_map.values())
+                    total_sks = sum(int(t.get("sks", 0) or 0) for t in valid_transkrips)
+                    max_semester = 1
 
                     db.query(Grade).filter(Grade.student_id == student.id).delete()
                     grades_to_add = []
 
-                    for t in transkrips:
-                        if t.get("is_used") != 1:
-                            continue
-
+                    for t in valid_transkrips:
                         kode = t.get("kode_mata_kuliah")
-                        if not kode:
-                            continue
-
                         sks  = int(t.get("sks", 0) or 0)
-                        nama = t.get("nama_mata_kuliah")
-                        if not nama and t.get("mata_kuliah"):
-                            nama = t.get("mata_kuliah").get("nama_resmi")
-                        if not nama:
-                            nama = "Unknown"
+                        nama = t.get("nama_mata_kuliah") or (t.get("mata_kuliah") or {}).get("nama_resmi") or "Unknown"
 
                         semester_data = t.get("semester", {})
                         try:
@@ -123,10 +127,6 @@ def sync_all_transcripts():
 
                         bobot       = float(t.get("nilai_angka") or 0.0)
                         nilai_huruf = t.get("nilai_huruf") or "E"
-
-                        if kode in added_courses:
-                            continue
-                        added_courses.add(kode)
 
                         course_id = course_cache.get(kode)
                         if not course_id:

@@ -173,10 +173,18 @@ export default function StudentDashboard() {
     IPK: parseFloat(r.ipk.toFixed(2)),
   }));
 
+  const getTargetSKS = (prodiName?: string) => {
+    if (!prodiName) return 144;
+    const p = prodiName.toUpperCase();
+    if (p.includes('S3') || p.includes('DOKTOR')) return 65;
+    if (p.includes('S2') || p.includes('MAGISTER')) return 46;
+    return 144;
+  };
+
   const latestRecord = groupedSemesters[0] || records[0];
-  const targetSKS = 144;
+  const targetSKS = getTargetSKS(student?.prodi);
   const currentTotalSks = latestRecord?.cumulativeSks || latestRecord?.sks || 0;
-  const sksProgress = latestRecord ? Math.round((currentTotalSks / targetSKS) * 100) : 0;
+  const sksProgress = latestRecord ? Math.min(100, Math.round((currentTotalSks / targetSKS) * 100)) : 0;
 
   const handleUpdateProfile = async (e: React.FormEvent) => {
     e.preventDefault();

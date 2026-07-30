@@ -61,6 +61,12 @@ export default function LoginPage() {
         router.push('/admin');
       } else if (data.role === 'PRODI') {
         router.push('/prodi');
+      } else if (data.role === 'DEKAN') {
+        router.push('/dekan');
+      } else if (data.role === 'WD1') {
+        router.push('/wd1');
+      } else if (data.role === 'KASUBAG_AKADEMIK') {
+        router.push('/kasubag-akademik');
       } else {
         setError('Akun ini tidak memiliki akses ke portal ini.');
       }
@@ -82,8 +88,8 @@ export default function LoginPage() {
       <div className="w-full max-w-md relative z-10">
         {/* Logo Header */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-tr from-blue-500 to-purple-600 shadow-lg shadow-blue-500/30 mb-4">
-            <GraduationCap size={32} className="text-white" />
+          <div className="inline-flex items-center justify-center w-24 h-28 mb-2">
+            <img src="/logo-unhas.png" alt="Logo Unhas" className="w-full h-full object-contain drop-shadow-2xl" />
           </div>
           <h1 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-purple-400">AIMS Portal</h1>
           <p className="text-slate-400 mt-1 text-sm">Academic Intelligence Management System</p>

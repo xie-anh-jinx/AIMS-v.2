@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { Menu, BookOpen, TrendingUp, Award, Calendar, LogOut, ChevronRight, MessageSquare, Edit2, Trash, User, Bell, AlertTriangle, CheckCircle } from 'lucide-react';
 import {LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer} from 'recharts';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || '/api';
 
 const getCookie = (name: string) => {
   if (typeof document === 'undefined') return '';
@@ -181,8 +181,17 @@ export default function StudentDashboard() {
     return 144;
   };
 
+  const getMaxSemesters = (prodiName?: string) => {
+    if (!prodiName) return 14;
+    const p = prodiName.toUpperCase();
+    if (p.includes('S3') || p.includes('DOKTOR')) return 10;
+    if (p.includes('S2') || p.includes('MAGISTER')) return 6;
+    return 14;
+  };
+
   const latestRecord = groupedSemesters[0] || records[0];
   const targetSKS = getTargetSKS(student?.prodi);
+  const maxSemesters = getMaxSemesters(student?.prodi);
   const currentTotalSks = latestRecord?.cumulativeSks || latestRecord?.sks || 0;
   const sksProgress = latestRecord ? Math.min(100, Math.round((currentTotalSks / targetSKS) * 100)) : 0;
 
@@ -318,7 +327,7 @@ export default function StudentDashboard() {
                   { label: 'IPK Terkini', value: latestRecord?.ipk?.toFixed(2) || '-', icon: Award, color: 'blue', sub: 'Indeks Prestasi Kumulatif' },
                   { label: 'IPS Semester Ini', value: latestRecord?.ips?.toFixed(2) || '-', icon: TrendingUp, color: 'purple', sub: 'Indeks Prestasi Semester' },
                   { label: 'Total SKS', value: currentTotalSks || '-', icon: BookOpen, color: 'green', sub: `dari ${targetSKS} SKS target` },
-                  { label: 'Sisa Semester', value: student?.semester ? Math.max(14 - student.semester, 0) : '-', icon: Calendar, color: 'yellow', sub: 'Estimasi menuju lulus' },
+                  { label: 'Sisa Semester', value: student?.semester ? Math.max(maxSemesters - student.semester, 0) : '-', icon: Calendar, color: 'yellow', sub: `Estimasi dari maks ${maxSemesters} semester` },
                 ].map(({ label, value, icon: Icon, color, sub }) => (
                   <div key={label} className="glass-panel p-5">
                     <div className={`w-10 h-10 rounded-xl flex items-center justify-center mb-3 ${color === 'blue' ? 'bg-blue-500/20 text-blue-400' :

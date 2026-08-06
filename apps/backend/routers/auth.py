@@ -49,7 +49,10 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
 
 @router.post("/login", response_model=Token)
 def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
-    user = db.query(User).filter(User.username == form_data.username).first()
+    # Support login with raw NIP (without 'dosen_' prefix) or exact username
+    user = db.query(User).filter(
+        (User.username == form_data.username) | (User.username == f"dosen_{form_data.username}")
+    ).first()
     
     # Auto-provision logic for demo phase: if username matches a known NIM/NIP and password is password123
     if not user and form_data.password == "password123":

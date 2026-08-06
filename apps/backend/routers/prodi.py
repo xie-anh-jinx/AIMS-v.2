@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from sqlalchemy import func, or_
+from pydantic import BaseModel
 from typing import List, Optional
 
 from packages.database.connection import get_db
@@ -53,7 +54,7 @@ def get_associated_prodi_names(prodi_name: str) -> List[str]:
 
 @router.get("/overview")
 def get_overview(db: Session = Depends(get_db), prodi_admin: ProdiAdmin = Depends(get_prodi_user)):
-    students = db.query(Student).filter(Student.prodi == prodi_admin.prodi_name).all()
+    students = db.query(Student).filter(Student.prodi.in_(get_associated_prodi_names(prodi_admin.prodi_name))).all()
     student_ids = [s.id for s in students]
     active_count = len([s for s in students if s.status == "Aktif"])
     
@@ -68,15 +69,16 @@ def get_overview(db: Session = Depends(get_db), prodi_admin: ProdiAdmin = Depend
     students_with_rec = set()
     for uid, r in latest_records.items():
         student = next((s for s in students if s.id == uid), None)
-        if not student or student.status == "Lulus":
+        if not student or student.status != "Aktif":
             continue
             
         students_with_rec.add(uid)
         if student and (student.angkatan >= 2026):
             safe += 1
-        elif r.status == "HIGH_RISK": high_risk += 1
-        elif r.status == "Warning": warning += 1
-        elif r.status == "Aman": safe += 1
+        elif r.status in ["HIGH_RISK", "Merah"]: high_risk += 1
+        elif r.status in ["Warning", "Kuning"]: warning += 1
+        elif r.status in ["Aman", "Hijau"]: safe += 1
+        else: safe += 1
     # Analyze active students without AcademicRecord
     for s in students:
         if s.status == "Aktif" and s.id not in students_with_rec:
@@ -104,7 +106,7 @@ def get_prodi_students(
     db: Session = Depends(get_db), 
     prodi_admin: ProdiAdmin = Depends(get_prodi_user)
 ):
-    query = db.query(Student).filter(Student.prodi == prodi_admin.prodi_name)
+    query = db.query(Student).filter(Student.prodi.in_(get_associated_prodi_names(prodi_admin.prodi_name)))
     
     if angkatan: query = query.filter(Student.angkatan == angkatan)
     if status: query = query.filter(Student.status == status)
@@ -116,24 +118,72 @@ def get_prodi_students(
 
 @router.get("/advisors")
 def get_prodi_advisors(db: Session = Depends(get_db), prodi_admin: ProdiAdmin = Depends(get_prodi_user)):
-    advisors = db.query(Advisor).filter(Advisor.prodi.in_(get_associated_prodi_names(prodi_admin.prodi_name))).all()
+    prodi_names = get_associated_prodi_names(prodi_admin.prodi_name)
+    advisors = db.query(Advisor).filter(Advisor.prodi.in_(prodi_names)).all()
     results = []
     for adv in advisors:
-        student_count = db.query(Student).filter(Student.advisor_id == adv.id).count()
+        student_count = db.query(Student).filter(
+            Student.advisor_id == adv.id,
+            Student.prodi.in_(prodi_names)
+        ).count()
         consultations = db.query(ConsultationLog).filter(ConsultationLog.advisor_id == adv.id).count()
         warnings_sent = db.query(AdminNote).filter(AdminNote.advisor_id == adv.id).count()
+        user = db.query(User).filter(User.id == adv.user_id).first() if adv.user_id else None
         results.append({
             "id": adv.id,
             "nama": adv.nama,
+            "email": adv.email,
+            "whatsapp": adv.whatsapp,
+            "user_id": adv.user_id,
+            "username": user.username if user else None,
             "student_count": student_count,
             "total_consultations": consultations,
             "warnings_sent": warnings_sent
         })
     return results
 
+class ResetAdvisorPasswordRequest(BaseModel):
+    advisor_id: int
+    new_password: Optional[str] = "password123"
+
+@router.post("/reset-advisor-password")
+def reset_advisor_password(
+    payload: ResetAdvisorPasswordRequest,
+    db: Session = Depends(get_db),
+    prodi_admin: ProdiAdmin = Depends(get_prodi_user)
+):
+    from .auth import get_password_hash
+    assoc_prodis = get_associated_prodi_names(prodi_admin.prodi_name)
+    advisor = db.query(Advisor).filter(
+        Advisor.id == payload.advisor_id,
+        Advisor.prodi.in_(assoc_prodis)
+    ).first()
+    
+    if not advisor:
+        advisor = db.query(Advisor).join(Student, Student.advisor_id == Advisor.id).filter(
+            Advisor.id == payload.advisor_id,
+            Student.prodi.in_(assoc_prodis)
+        ).first()
+
+    if not advisor:
+        raise HTTPException(status_code=404, detail="Dosen PA tidak ditemukan di prodi Anda")
+
+    user = db.query(User).filter(User.id == advisor.user_id).first() if advisor.user_id else None
+    if not user:
+        raise HTTPException(status_code=404, detail="Akun login Dosen PA tidak ditemukan")
+
+    new_pass = payload.new_password.strip() if payload.new_password and payload.new_password.strip() else "password123"
+    user.hashed_password = get_password_hash(new_pass)
+    db.commit()
+
+    return {
+        "status": "success",
+        "message": f"Password Dosen PA {advisor.nama} ({user.username}) berhasil direset ke '{new_pass}'"
+    }
+
 @router.get("/stats/angkatan")
 def stats_angkatan(db: Session = Depends(get_db), prodi_admin: ProdiAdmin = Depends(get_prodi_user)):
-    res = db.query(Student.angkatan, func.count(Student.id)).filter(Student.prodi == prodi_admin.prodi_name).group_by(Student.angkatan).all()
+    res = db.query(Student.angkatan, func.count(Student.id)).filter(Student.prodi.in_(get_associated_prodi_names(prodi_admin.prodi_name))).group_by(Student.angkatan).all()
     return [{"name": str(s[0]), "value": s[1]} for s in res]
 
 @router.get("/stats/status")
@@ -153,7 +203,7 @@ def stats_status(db: Session = Depends(get_db), prodi_admin: ProdiAdmin = Depend
         AcademicRecord, 
         (AcademicRecord.student_id == subq.c.student_id) & (AcademicRecord.semester == subq.c.max_semester)
     ).filter(
-        Student.prodi == prodi_admin.prodi_name
+        Student.prodi.in_(get_associated_prodi_names(prodi_admin.prodi_name))
     ).group_by(Student.status, AcademicRecord.status).all()
     
     stats_map = {
@@ -169,21 +219,21 @@ def stats_status(db: Session = Depends(get_db), prodi_admin: ProdiAdmin = Depend
             stats_map[s_status] = stats_map.get(s_status, 0) + c
         else:
             # Jika aktif (atau data error bertuliskan 'Warning'/'Aman'), klasifikasikan berdasar rekaman
-            if r_status == "HIGH_RISK":
+            if r_status in ["HIGH_RISK", "Merah"]:
                 stats_map["Zona Merah"] += c
-            elif r_status == "Warning":
+            elif r_status in ["Warning", "Kuning"]:
                 stats_map["Zona Kuning"] += c
-            elif r_status == "Aman":
+            elif r_status in ["Aman", "Hijau"]:
                 stats_map["Zona Hijau"] += c
             else:
-                stats_map["Aktif"] += c
+                stats_map["Zona Hijau"] += c
                 
     # Buang yg jumlahnya 0 agar bersih
     return [{"name": k, "value": v} for k, v in stats_map.items() if v > 0]
 
 @router.get("/stats/semester")
 def stats_semester(db: Session = Depends(get_db), prodi_admin: ProdiAdmin = Depends(get_prodi_user)):
-    res = db.query(Student.semester, func.count(Student.id)).filter(Student.prodi == prodi_admin.prodi_name, Student.status == "Aktif").group_by(Student.semester).all()
+    res = db.query(Student.semester, func.count(Student.id)).filter(Student.prodi.in_(get_associated_prodi_names(prodi_admin.prodi_name)), Student.status == "Aktif").group_by(Student.semester).all()
     out = [{"name": f"Sm {s[0]}", "value": s[1]} for s in res if s[0]]
     out.sort(key=lambda x: int(x["name"].split(" ")[1]))
     return out
@@ -215,7 +265,7 @@ def get_prodi_risk_students(
         Advisor,
         Student.advisor_id == Advisor.id
     ).filter(
-        Student.prodi == prodi_admin.prodi_name
+        Student.prodi.in_(get_associated_prodi_names(prodi_admin.prodi_name))
     )
     
     if zone == "merah":
@@ -252,6 +302,7 @@ def get_prodi_risk_students(
             "ipk": round(ipk, 2) if ipk else None,
             "status_evaluasi": rec_status or "Aman",
             "advisor_name": adv_name or "Belum Ditentukan",
+            "advisor_id": st.advisor_id,
             "sumber_data": "Neosia Status"
         })
         
@@ -260,7 +311,7 @@ def get_prodi_risk_students(
         active_no_rec = db.query(Student).outerjoin(
             Advisor, Student.advisor_id == Advisor.id
         ).filter(
-            Student.prodi == prodi_admin.prodi_name,
+            Student.prodi.in_(get_associated_prodi_names(prodi_admin.prodi_name)),
             Student.status == "Aktif",
             ~Student.id.in_(db.query(AcademicRecord.student_id).distinct().subquery())
         ).order_by(Student.angkatan).all()
@@ -281,6 +332,7 @@ def get_prodi_risk_students(
                     "angkatan": s.angkatan,
                     "ipk": None,
                     "advisor_name": adv.nama if adv else "Belum Ditentukan",
+                    "advisor_id": s.advisor_id,
                     "sumber_data": "Estimasi Lama Studi"
                 })
                 
@@ -311,6 +363,23 @@ def create_prodi_note(
     )
     db.add(note)
     db.commit()
+
+    # Send automatic WhatsApp notification via OpenClaw to Dosen PA
+    if advisor.whatsapp:
+        try:
+            from services.notification_service.notification_engine import NotificationEngine
+            notifier = NotificationEngine(db)
+            wa_msg = (
+                f"📌 *CATATAN BARU DARI PRODI*\n\n"
+                f"Yth. Bapak/Ibu Dosen PA *{advisor.nama}*,\n"
+                f"Telah dikirimkan instruksi/catatan akademik baru dari Program Studi:\n\n"
+                f"\"{payload.notes}\"\n\n"
+                f"Mohon dapat ditindaklanjuti pada sistem AIMS UNHAS."
+            )
+            notifier.send("WHATSAPP", advisor.whatsapp, wa_msg)
+        except Exception as e:
+            pass
+
     return {"message": "Catatan berhasil dikirim"}
 
 @router.get("/advisor-notes/sent")

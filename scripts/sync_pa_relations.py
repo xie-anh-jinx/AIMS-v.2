@@ -37,11 +37,13 @@ with engine.connect() as conn:
     res = conn.execute(text("SELECT id, nama, prodi FROM advisors")).mappings().all()
     advisors = [{'id': r['id'], 'nama': r['nama'], 'prodi': r['prodi']} for r in res]
     
-    def match_advisor(neosia_name, advisors):
+    def match_advisor(neosia_name, advisors, target_prodi=None):
         neo = neosia_name.lower().replace('.', '').replace(',', '')
         best_match = None
         highest_ratio = 0.0
         for adv in advisors:
+            if target_prodi and adv['prodi'] != target_prodi:
+                continue
             db_name = adv['nama'].lower().replace('.', '').replace(',', '')
             ratio = difflib.SequenceMatcher(None, neo, db_name).ratio()
             if db_name in neo or neo in db_name:

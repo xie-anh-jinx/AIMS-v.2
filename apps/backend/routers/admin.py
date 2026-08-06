@@ -53,7 +53,7 @@ def get_dashboard_overview(
         (AcademicRecord.student_id == subq.c.student_id) &
         (AcademicRecord.semester   == subq.c.max_semester)
     ).join(Student, Student.id == AcademicRecord.student_id).filter(
-        Student.status != "Lulus",
+        Student.status == "Aktif",
         Student.angkatan < 2026,
         AcademicRecord.status == "HIGH_RISK"
     )
@@ -62,7 +62,7 @@ def get_dashboard_overview(
         (AcademicRecord.student_id == subq.c.student_id) &
         (AcademicRecord.semester   == subq.c.max_semester)
     ).join(Student, Student.id == AcademicRecord.student_id).filter(
-        Student.status != "Lulus",
+        Student.status == "Aktif",
         Student.angkatan < 2026,
         AcademicRecord.status == "Warning"
     )
@@ -71,7 +71,7 @@ def get_dashboard_overview(
         (AcademicRecord.student_id == subq.c.student_id) &
         (AcademicRecord.semester   == subq.c.max_semester)
     ).join(Student, Student.id == AcademicRecord.student_id).filter(
-        Student.status != "Lulus",
+        Student.status == "Aktif",
         AcademicRecord.status == "Aman"
     )
 

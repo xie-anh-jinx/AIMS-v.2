@@ -8,7 +8,7 @@ import {
 } from 'lucide-react';
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Tooltip as RechartsTooltip, Legend } from 'recharts';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || '/api';
 
 interface DashboardStats {
   total_students: number;
@@ -44,11 +44,14 @@ interface TranscriptRecord {
 // Status color helpers
 const getStatusBadge = (status: string) => {
   switch (status) {
-    case 'Aktif': return 'bg-green-500/10 text-green-400 border-green-500/20';
-    case 'Lulus': return 'bg-blue-500/10 text-blue-400 border-blue-500/20';
-    case 'Drop Out': return 'bg-red-500/10 text-red-400 border-red-500/20';
-    case 'Cuti': return 'bg-yellow-500/10 text-yellow-400 border-yellow-500/20';
-    default: return 'bg-slate-500/10 text-slate-400 border-slate-500/20';
+    case 'Aktif':       return 'bg-green-500/10 text-green-400 border-green-500/20';
+    case 'Lulus':       return 'bg-blue-500/10 text-blue-400 border-blue-500/20';
+    case 'Drop Out':    return 'bg-red-500/10 text-red-400 border-red-500/20';
+    case 'Cuti':        return 'bg-yellow-500/10 text-yellow-400 border-yellow-500/20';
+    case 'Henti Studi': return 'bg-purple-500/10 text-purple-400 border-purple-500/20';
+    case 'Keluar':      return 'bg-amber-500/10 text-amber-400 border-amber-500/20';
+    case 'Non Aktif':   return 'bg-slate-500/10 text-slate-400 border-slate-500/20';
+    default:            return 'bg-slate-500/10 text-slate-400 border-slate-500/20';
   }
 };
 
@@ -805,8 +808,10 @@ export default function AdminDashboard() {
                             className="w-full bg-[#1e293b] border border-[#334155] text-white text-sm px-4 py-2 rounded-lg focus:outline-none focus:border-blue-500"
                           >
                             <option value="ALL">Seluruh Mahasiswa Aktif</option>
-                            <option value="RED_ZONE">Zona Merah Kritis (IPK &lt; 2.0)</option>
-                            <option value="YELLOW_ZONE">Zona Kuning Peringatan</option>
+                            <option value="RED_ZONE">Zona Merah Kritis (Mahasiswa + Dosen PA via WA)</option>
+                            <option value="YELLOW_ZONE">Zona Kuning Peringatan (Mahasiswa + Dosen PA via WA)</option>
+                            <option value="ADVISORS_RISK_ZONE">Dosen PA dengan Mahasiswa Zona Merah &amp; Kuning</option>
+                            <option value="ALL_ADVISORS">Seluruh Dosen Penasihat Akademik (PA)</option>
                           </select>
                         </div>
                         <div className="flex-1">
@@ -963,7 +968,7 @@ export default function AdminDashboard() {
                   <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)}
                     className="bg-[#1e293b] border border-[#334155] text-slate-300 text-xs px-3 py-2 rounded-lg focus:outline-none focus:border-blue-500">
                     <option value="">Semua Status</option>
-                    {['Aktif', 'Cuti', 'Lulus', 'Drop Out', 'Non Aktif'].map(s => <option key={s} value={s}>{s}</option>)}
+                    {['Aktif', 'Lulus', 'Henti Studi', 'Drop Out', 'Cuti', 'Keluar', 'Non Aktif'].map(s => <option key={s} value={s}>{s}</option>)}
                   </select>
                   <div className="relative flex-1 min-w-[200px]">
                     <input type="text" value={searchQuery} onChange={e => setSearchQuery(e.target.value)} onKeyDown={e => e.key === 'Enter' && applyFilters()}

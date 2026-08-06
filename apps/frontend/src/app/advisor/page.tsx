@@ -4,7 +4,7 @@ import {useState, useEffect} from 'react';
 import {  Users, AlertTriangle, TrendingDown, ClipboardList, LogOut, ChevronRight, Bell, BarChart2, Edit2, Trash, User , Menu, X } from 'lucide-react';
 import {BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell} from 'recharts';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || '/api';
 
 interface Student {
   id: number;
@@ -205,9 +205,14 @@ export default function AdvisorDashboard() {
   };
 
 
-  // --- Risk classification based on AcademicRecord.status or IPK ---
-  const activeStudents = students.filter(s => s.status !== 'Drop Out' && s.status !== 'Lulus' && s.status !== 'Non Aktif');
-  const dropOutStudents = students.filter(s => s.status === 'Drop Out');
+  const isInactiveOrPindah = (status?: string) => {
+    if (!status) return false;
+    const s = status.toLowerCase();
+    return s.includes('pindah') || s.includes('keluar') || s.includes('drop') || s.includes('lulus') || s.includes('non aktif') || s.includes('non-aktif') || s.includes('henti');
+  };
+
+  const activeStudents = students.filter(s => !isInactiveOrPindah(s.status));
+  const dropOutStudents = students.filter(s => isInactiveOrPindah(s.status));
   const highRisk = activeStudents.filter(s => 
     records[s.nim]?.status === 'HIGH_RISK' || 
     ((records[s.nim]?.ipk ?? 0) > 0 && (records[s.nim]?.ipk ?? 0) < 2.0)
@@ -383,7 +388,12 @@ export default function AdvisorDashboard() {
               >
                 <Icon size={18} />
                 <span className="text-sm font-medium">{label}</span>
-                {isActive && <ChevronRight size={14} className="ml-auto" />}
+                {label === 'Notifikasi' && adminNotes.length > 0 && (
+                  <span className="ml-auto flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-[11px] font-bold text-white">
+                    {adminNotes.length}
+                  </span>
+                )}
+                {isActive && label !== 'Notifikasi' && <ChevronRight size={14} className="ml-auto" />}
               </button>
             );
           })}
@@ -397,7 +407,12 @@ export default function AdvisorDashboard() {
       {/* Main */}
       <main className="flex-1 md:ml-[280px] p-4 md:p-8 overflow-y-auto w-full">
         <div className="max-w-6xl mx-auto">
-          <div className="md:hidden flex items-center mb-6"><button onClick={() => setMobileMenuOpen(true)} className="text-slate-300 hover:text-white p-2 -ml-2"><Menu size={24} /></button></div>
+          <div className="md:hidden flex items-center mb-6">
+            <button onClick={() => setMobileMenuOpen(true)} className="text-slate-300 hover:text-white p-2 -ml-2 relative">
+              <Menu size={24} />
+              {adminNotes.length > 0 && <span className="absolute top-1 right-1 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-[#0f172a]"></span>}
+            </button>
+          </div>
           <div className="mb-8">
             <h1 className="text-2xl font-bold text-white">Dashboard <span className="bg-clip-text text-transparent bg-gradient-to-r from-purple-400 to-pink-400">Penasehat Akademik</span></h1>
             <p className="text-slate-400 text-sm mt-1">{activeNav === 'Mahasiswa Saya' ? 'Pantau perkembangan akademik mahasiswa bimbingan Anda' : `Mode: ${activeNav}`}</p>
@@ -450,24 +465,49 @@ export default function AdvisorDashboard() {
                   </ResponsiveContainer>
                 </div>
 
-                {/* High Risk Alert */}
+                {/* High Risk & Warning Alert */}
                 <div className="glass-panel p-6">
-                  <h3 className="font-semibold text-white mb-4 flex items-center gap-2"><AlertTriangle size={18} className="text-red-400" />Mahasiswa Risiko Tinggi</h3>
-                  <div className="space-y-3">
-                    {highRisk.length === 0 ? (
-                      <div className="text-center text-slate-500 text-sm py-8">🎉 Tidak ada mahasiswa berisiko tinggi</div>
-                    ) : highRisk.map(s => (
-                      <div key={s.nim} className="flex items-center justify-between p-3 rounded-xl bg-red-500/10 border border-red-500/20">
-                        <div>
-                          <p className="text-sm font-medium text-white">{s.nama}</p>
-                          <p className="text-xs text-slate-400">{s.nim} · Sem {s.semester}</p>
-                        </div>
-                        <div className="text-right">
-                          <p className="text-lg font-bold text-red-400">{records[s.nim]?.ipk?.toFixed(2)}</p>
-                          <p className="text-xs text-slate-400">IPK</p>
-                        </div>
-                      </div>
-                    ))}
+                  <h3 className="font-semibold text-white mb-4 flex items-center gap-2">
+                    <AlertTriangle size={18} className="text-amber-400" />
+                    Mahasiswa Berisiko Akademik (Merah & Kuning)
+                  </h3>
+                  <div className="space-y-3 max-h-[220px] overflow-y-auto pr-1">
+                    {highRisk.length === 0 && warning.length === 0 ? (
+                      <div className="text-center text-slate-500 text-sm py-8">🎉 Seluruh mahasiswa bimbingan Anda berada di Zona Aman</div>
+                    ) : (
+                      <>
+                        {highRisk.map(s => (
+                          <div key={s.nim} className="flex items-center justify-between p-3 rounded-xl bg-red-500/10 border border-red-500/20">
+                            <div>
+                              <div className="flex items-center gap-2">
+                                <span className="px-1.5 py-0.5 text-[10px] font-bold bg-red-500/20 text-red-400 border border-red-500/30 rounded">ZONA MERAH</span>
+                                <p className="text-sm font-medium text-white">{s.nama}</p>
+                              </div>
+                              <p className="text-xs text-slate-400 mt-0.5">{s.nim} · Sem {s.semester}</p>
+                            </div>
+                            <div className="text-right">
+                              <p className="text-lg font-bold text-red-400">{(records[s.nim]?.ipk || 0).toFixed(2)}</p>
+                              <p className="text-xs text-slate-400">IPK</p>
+                            </div>
+                          </div>
+                        ))}
+                        {warning.map(s => (
+                          <div key={s.nim} className="flex items-center justify-between p-3 rounded-xl bg-yellow-500/10 border border-yellow-500/20">
+                            <div>
+                              <div className="flex items-center gap-2">
+                                <span className="px-1.5 py-0.5 text-[10px] font-bold bg-yellow-500/20 text-yellow-400 border border-yellow-500/30 rounded">ZONA KUNING</span>
+                                <p className="text-sm font-medium text-white">{s.nama}</p>
+                              </div>
+                              <p className="text-xs text-slate-400 mt-0.5">{s.nim} · Sem {s.semester}</p>
+                            </div>
+                            <div className="text-right">
+                              <p className="text-lg font-bold text-yellow-400">{(records[s.nim]?.ipk || 0).toFixed(2)}</p>
+                              <p className="text-xs text-slate-400">IPK</p>
+                            </div>
+                          </div>
+                        ))}
+                      </>
+                    )}
                   </div>
                 </div>
               </div>
@@ -580,42 +620,115 @@ export default function AdvisorDashboard() {
           )}
 
           {activeNav === 'Risiko Akademik' && (
-            <div className="glass-panel p-6">
-              <h3 className="font-semibold text-white mb-2">Manajemen Risiko Tinggi</h3>
-              <p className="text-sm text-slate-400 mb-6">Daftar mahasiswa bimbingan yang membutuhkan intervensi akademik secepatnya (DO Warning).</p>
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {highRisk.length === 0 ? (
-                  <div className="col-span-2 text-center text-slate-500 py-10">Bagus sekali! Seluruh mahasiswa Anda aman.</div>
-                ) : highRisk.map(s => (
-                  <div key={s.nim} className="p-5 rounded-2xl bg-slate-800/50 border-l-4 border-l-red-500">
-                    <div className="flex justify-between items-start mb-3">
-                      <div>
-                        <h4 className="font-bold text-white">{s.nama}</h4>
-                        <p className="text-xs text-slate-400">{s.nim}</p>
-                      </div>
-                      <span className="text-xl font-black text-red-500">{records[s.nim]?.ipk?.toFixed(2)}</span>
-                    </div>
-                    <p className="text-xs text-red-400 mb-4 bg-red-500/10 p-2 rounded-lg inline-block">Menunggak 3 SKS Wajib, IPK &lt; 2.00</p>
-                    <div className="flex gap-2">
-                      <button 
-                        onClick={() => {
-                          setNoteForm({ nim: s.nim, type: 'Konsultasi Akademik', status: 'Warning', notes: '' });
-                          setShowNoteModal(true);
-                        }}
-                        className="flex-1 bg-blue-600 hover:bg-blue-500 text-white text-xs font-medium py-2 rounded-lg transition"
-                      >
-                        Jadwalkan Panggilan
-                      </button>
-                      <button 
-                        onClick={() => handleOpenTranscript(s)}
-                        className="bg-slate-700 hover:bg-slate-600 text-white text-xs font-medium px-4 py-2 rounded-lg transition"
-                      >
-                        Detail Transkrip
-                      </button>
-                    </div>
+            <div className="space-y-6">
+              {/* Header Title */}
+              <div className="glass-panel p-6">
+                <h3 className="font-semibold text-white text-lg mb-1">Manajemen Risiko Akademik (Merah & Kuning)</h3>
+                <p className="text-xs text-slate-400">Daftar mahasiswa bimbingan yang membutuhkan intervensi akademik khusus, baik yang masuk kategori risiko tinggi (DO Warning) maupun kategori peringatan (Warning).</p>
+              </div>
+
+              {/* Section 1: Zona Merah (Risiko Tinggi / DO Warning) */}
+              <div className="glass-panel p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <div>
+                    <h3 className="font-semibold text-white text-base flex items-center gap-2">
+                      <span className="w-3 h-3 rounded-full bg-red-500 inline-block animate-pulse"></span>
+                      Mahasiswa Risiko Tinggi (Zona Merah / DO Warning)
+                    </h3>
+                    <p className="text-xs text-slate-400 mt-1">IPK kritis (&lt; 2.00) atau telah melewati ambang batas semester perkuliahan.</p>
                   </div>
-                ))}
+                  <span className="px-3 py-1 bg-red-500/10 text-red-400 border border-red-500/20 text-xs font-bold rounded-full">
+                    {highRisk.length} Mahasiswa
+                  </span>
+                </div>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {highRisk.length === 0 ? (
+                    <div className="col-span-2 text-center text-slate-500 py-6 text-sm">🎉 Tidak ada mahasiswa bimbingan di Zona Merah.</div>
+                  ) : highRisk.map(s => (
+                    <div key={s.nim} className="p-5 rounded-2xl bg-slate-800/50 border-l-4 border-l-red-500">
+                      <div className="flex justify-between items-start mb-3">
+                        <div>
+                          <h4 className="font-bold text-white">{s.nama}</h4>
+                          <p className="text-xs text-slate-400">{s.nim} · Sem {s.semester}</p>
+                        </div>
+                        <span className="text-xl font-black text-red-500">{(records[s.nim]?.ipk || 0).toFixed(2)}</span>
+                      </div>
+                      <p className="text-xs text-red-400 mb-4 bg-red-500/10 p-2 rounded-lg inline-block font-medium">
+                        {(records[s.nim]?.ipk || 0) < 2.0 ? 'IPK Kritis < 2.00' : 'Evaluasi Masa Studi (Batas Semester)'} · SKS: {records[s.nim]?.sks || 0}
+                      </p>
+                      <div className="flex gap-2">
+                        <button 
+                          onClick={() => {
+                            setNoteForm({ nim: s.nim, type: 'Konsultasi Akademik', status: 'High Risk', notes: '' });
+                            setShowNoteModal(true);
+                          }}
+                          className="flex-1 bg-red-600 hover:bg-red-500 text-white text-xs font-medium py-2 rounded-lg transition"
+                        >
+                          Jadwalkan Konseling Kritis
+                        </button>
+                        <button 
+                          onClick={() => handleOpenTranscript(s)}
+                          className="bg-slate-700 hover:bg-slate-600 text-white text-xs font-medium px-4 py-2 rounded-lg transition"
+                        >
+                          Detail Transkrip
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Section 2: Zona Kuning (Warning / Perhatian Akademik) */}
+              <div className="glass-panel p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <div>
+                    <h3 className="font-semibold text-white text-base flex items-center gap-2">
+                      <span className="w-3 h-3 rounded-full bg-yellow-500 inline-block"></span>
+                      Mahasiswa Perhatian Akademik (Zona Kuning / Warning)
+                    </h3>
+                    <p className="text-xs text-slate-400 mt-1">Performa akademik pas-pasan (IPK 2.00 - 2.74) yang memerlukan perbaikan strategi studi.</p>
+                  </div>
+                  <span className="px-3 py-1 bg-yellow-500/10 text-yellow-400 border border-yellow-500/20 text-xs font-bold rounded-full">
+                    {warning.length} Mahasiswa
+                  </span>
+                </div>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {warning.length === 0 ? (
+                    <div className="col-span-2 text-center text-slate-500 py-6 text-sm">👍 Tidak ada mahasiswa bimbingan di Zona Kuning.</div>
+                  ) : warning.map(s => (
+                    <div key={s.nim} className="p-5 rounded-2xl bg-slate-800/50 border-l-4 border-l-yellow-500">
+                      <div className="flex justify-between items-start mb-3">
+                        <div>
+                          <h4 className="font-bold text-white">{s.nama}</h4>
+                          <p className="text-xs text-slate-400">{s.nim} · Sem {s.semester}</p>
+                        </div>
+                        <span className="text-xl font-black text-yellow-400">{(records[s.nim]?.ipk || 0).toFixed(2)}</span>
+                      </div>
+                      <p className="text-xs text-yellow-400 mb-4 bg-yellow-500/10 p-2 rounded-lg inline-block font-medium">
+                        Perhatian Akademik (IPK 2.00 - 2.74) · SKS: {records[s.nim]?.sks || 0}
+                      </p>
+                      <div className="flex gap-2">
+                        <button 
+                          onClick={() => {
+                            setNoteForm({ nim: s.nim, type: 'Konsultasi Akademik', status: 'Warning', notes: '' });
+                            setShowNoteModal(true);
+                          }}
+                          className="flex-1 bg-yellow-600 hover:bg-yellow-500 text-white text-xs font-medium py-2 rounded-lg transition"
+                        >
+                          Jadwalkan Konsultasi
+                        </button>
+                        <button 
+                          onClick={() => handleOpenTranscript(s)}
+                          className="bg-slate-700 hover:bg-slate-600 text-white text-xs font-medium px-4 py-2 rounded-lg transition"
+                        >
+                          Detail Transkrip
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </div>
             </div>
           )}

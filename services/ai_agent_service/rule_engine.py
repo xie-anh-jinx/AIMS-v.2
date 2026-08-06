@@ -21,6 +21,9 @@ class RuleAction:
     student_whatsapp: str
     message: str
     notify_advisor: bool = False
+    advisor_id: Optional[int] = None
+    advisor_nama: Optional[str] = None
+    advisor_whatsapp: Optional[str] = None
 
 class RuleEngine:
     """
@@ -52,6 +55,9 @@ class RuleEngine:
             student_nim=student["nim"],
             student_nama=student["nama"],
             student_whatsapp=student.get("nomor_whatsapp", ""),
+            advisor_id=student.get("advisor_id"),
+            advisor_nama=student.get("advisor_nama"),
+            advisor_whatsapp=student.get("advisor_whatsapp"),
         )
 
         from packages.shared.degree_rules import evaluate_academic_risk

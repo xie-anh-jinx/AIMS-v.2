@@ -47,42 +47,63 @@ def get_degree_rules(prodi: str) -> dict:
     level = get_degree_level(prodi)
     return DEGREE_RULES.get(level, DEGREE_RULES["S1"])
 
-def evaluate_academic_risk(prodi: str, semester: int, total_sks: int, ipk: float) -> str:
+def evaluate_academic_risk(prodi: str, semester: int, total_sks: int, ipk: float, status: str = "Aktif") -> str:
     """
     Mengevaluasi status risiko akademik (HIGH_RISK, Warning, Aman)
-    berdasarkan aturan jenjang studi, semester, total SKS, dan IPK.
+    berdasarkan aturan jenjang studi, semester, total SKS, IPK, dan status keaktifan mahasiswa.
     """
+    if status:
+        st_lower = str(status).lower()
+        if any(kw in st_lower for kw in ["pindah", "keluar", "drop", "lulus", "non aktif", "non-aktif", "henti"]):
+            return "Aman"
+
     level = get_degree_level(prodi)
     rules = DEGREE_RULES.get(level, DEGREE_RULES["S1"])
     
-    # 1. Aturan Khusus Zona Merah berdasarkan jenjang
-    if level == "S1":
-        # S1 yang telah semester 14, namun belum mencapai 144 SKS dan IPK dibawah 2.5
-        if semester >= 14 and (total_sks < 144 or ipk < 2.5):
+    # 1. Mahasiswa Baru (Semester 1 / IPK 0.0) -> Aman (Zona Hijau)
+    if semester <= 1 or (ipk == 0.0 and total_sks == 0):
+        return "Aman"
+        
+    # 2. Mahasiswa yang sudah tuntas SKS target & IPK memadai -> Aman (Zona Hijau)
+    if total_sks >= rules["min_sks"] and ipk >= 2.00:
+        return "Aman"
+
+    # 3. ZONA MERAH (HIGH_RISK / DO Kritis)
+    # a. Mahasiswa S1 Semester >= 14 OTOMATIS masuk Zona Merah
+    if level == "S1" and semester >= 14:
+        return "HIGH_RISK"
+
+    # b. IPK Kritis (< 2.00) setelah menempuh minimal 1 semester
+    if 0.0 < ipk < 2.00:
+        return "HIGH_RISK"
+        
+    # c. Kriteria DO Kritis S2 / S3
+    if level == "S2":
+        if semester >= 6 and (total_sks < 30 or ipk < 2.50):
             return "HIGH_RISK"
-    elif level == "S2":
-        # S2 yang sudah 6 semester atau lebih tapi belum mencapai 46 SKS
-        if semester >= 6 and total_sks < 46:
+        if semester > 6 and (total_sks < 36 or ipk < 2.75):
             return "HIGH_RISK"
     elif level == "S3":
-        # S3 yang sudah semester 10 atau lebih tapi belum mencapai 65 SKS
-        if semester >= 10 and total_sks < 65:
+        if semester >= 10 and (total_sks < 40 or ipk < 2.75):
             return "HIGH_RISK"
-            
-    # 2. Aturan Umum (Fail-safe)
-    if ipk < 2.0:
-        return "HIGH_RISK"
-        
-    # Perhatikan: kita mengubah aturan max semester lama agar tidak conflict.
-    # Jika dia sudah di semester maksimal TAPI memenuhi syarat di atas (SKS & IPK cukup),
-    # dia akan lolos dari block khusus di atas. Kita asumsikan dia masuk masa evaluasi/warning.
-    if semester > rules["max_semesters"]:
-        # Lewat batas waktu -> DO / High Risk
-        return "HIGH_RISK"
-        
-    # 3. Warning (Zona Kuning)
-    if ipk < 2.75 or semester >= rules["warning_semesters"]:
+        if semester > 10 and (total_sks < 50 or ipk < 3.00):
+            return "HIGH_RISK"
+
+    # 4. ZONA KUNING (Warning / Perhatian Akademik)
+    # Aturan Khusus S1: Mahasiswa S1 di atas 2.74 TIDAK BOLEH masuk Zona Kuning.
+    # Zona Kuning S1 hanya untuk IPK 2.00 - 2.74 (selama semester < 14).
+    if level == "S1":
+        if 2.00 <= ipk <= 2.74 and semester < 14:
+            return "Warning"
+        return "Aman"
+
+    # Zona Kuning S2 / S3:
+    if 2.00 <= ipk < 2.75:
         return "Warning"
-        
-    # 4. Aman (Zona Hijau)
+    if level == "S2" and semester >= 5 and total_sks < 46:
+        return "Warning"
+    if level == "S3" and semester >= 7 and total_sks < 65:
+        return "Warning"
+
+    # 5. Default -> Aman (Zona Hijau)
     return "Aman"

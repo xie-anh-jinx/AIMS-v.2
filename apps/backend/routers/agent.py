@@ -86,7 +86,7 @@ def get_notification_logs(
         } for l in logs
     ]
 class BroadcastRequest(BaseModel):
-    target: str # 'ALL', 'RED_ZONE', 'YELLOW_ZONE'
+    target: str # 'ALL', 'RED_ZONE', 'YELLOW_ZONE', 'RED_ZONE_ADVISORS', 'YELLOW_ZONE_ADVISORS', 'ADVISORS_RISK_ZONE', 'ALL_ADVISORS'
     channel: str # 'WHATSAPP', 'TELEGRAM', 'EMAIL'
     message: str
 
@@ -96,15 +96,58 @@ def trigger_manual_broadcast(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    if current_user.role != "ADMIN":
+    from packages.database.models import Advisor
+
+    if current_user.role not in ["ADMIN", "WD1", "DEKAN", "KASUBAG"]:
         raise HTTPException(status_code=403, detail="Not authorized")
         
-    # Find matching students
+    notifier = NotificationEngine(db)
+    sent_count = 0
+    total_target = 0
+
+    # 1. Target is Dosen PA specific
+    if payload.target in ["ALL_ADVISORS", "RED_ZONE_ADVISORS", "YELLOW_ZONE_ADVISORS", "ADVISORS_RISK_ZONE"]:
+        advisors = []
+        if payload.target == "ALL_ADVISORS":
+            advisors = db.query(Advisor).all()
+        else:
+            subq = db.query(
+                AcademicRecord.student_id,
+                func.max(AcademicRecord.semester).label("max_semester")
+            ).group_by(AcademicRecord.student_id).subquery()
+
+            query = db.query(Advisor).join(Student, Student.advisor_id == Advisor.id).join(
+                AcademicRecord, Student.id == AcademicRecord.student_id
+            ).join(
+                subq,
+                (AcademicRecord.student_id == subq.c.student_id) & 
+                (AcademicRecord.semester == subq.c.max_semester)
+            ).filter(Student.status == "Aktif")
+
+            if payload.target == "RED_ZONE_ADVISORS":
+                query = query.filter(AcademicRecord.status == "HIGH_RISK")
+            elif payload.target == "YELLOW_ZONE_ADVISORS":
+                query = query.filter(AcademicRecord.status == "Warning")
+            elif payload.target == "ADVISORS_RISK_ZONE":
+                query = query.filter(AcademicRecord.status.in_(["HIGH_RISK", "Warning"]))
+
+            advisors = list(set(query.all()))
+
+        total_target = len(advisors)
+        for adv in advisors:
+            recipient = adv.whatsapp or adv.email
+            if recipient:
+                wa_msg = f"📣 *SIARAN KAMPUS UNTUK DOSEN PA*\n\nYth. Bapak/Ibu *{adv.nama}*,\n\n{payload.message}"
+                success = notifier.send(payload.channel, recipient, wa_msg)
+                if success: sent_count += 1
+
+        return {"status": "SUCCESS", "message": f"Broadcast sent via {payload.channel} to {sent_count}/{total_target} Dosen PA."}
+
+    # 2. Target is Students (ALL, RED_ZONE, YELLOW_ZONE)
     students = []
     if payload.target == "ALL":
         students = db.query(Student).filter(Student.status == "Aktif").all()
     else:
-        # High risk and warning
         subq = db.query(
             AcademicRecord.student_id,
             func.max(AcademicRecord.semester).label("max_semester")
@@ -128,8 +171,9 @@ def trigger_manual_broadcast(
     if not students:
         return {"status": "SUCCESS", "message": "No active students found matching target criteria."}
         
-    notifier = NotificationEngine(db)
-    sent_count = 0
+    total_target = len(students)
+    notified_advisors = set()
+
     for s in students:
         # Determine recipient based on channel
         recipient = None
@@ -138,12 +182,22 @@ def trigger_manual_broadcast(
         elif payload.channel == "EMAIL":
             recipient = getattr(s, 'email', None)
         elif payload.channel == "TELEGRAM":
-            # Just using whatsapp as fallback for telegram if real tg ID isn't stored?
-            # Or we can just pass NIM... let's just use nomor_whatsapp assuming it's a mobile number linked to TG, or email
             recipient = s.nomor_whatsapp
 
         if recipient:
             success = notifier.send(payload.channel, recipient, payload.message, student_id=s.id)
             if success: sent_count += 1
-            
-    return {"status": "SUCCESS", "message": f"Broadcast sent via {payload.channel} to {sent_count}/{len(students)} students."}
+
+        # ALSO send WhatsApp via OpenClaw to student's Dosen PA
+        if payload.channel == "WHATSAPP" and s.advisor and s.advisor.whatsapp and s.advisor.id not in notified_advisors:
+            adv_msg = (
+                f"🚨 *SIARAN MONITORING OPENCLAW DOSEN PA*\n\n"
+                f"Yth. Bapak/Ibu Dosen PA *{s.advisor.nama}*,\n"
+                f"Pesan siaran otomatis telah dikirimkan ke mahasiswa bimbingan Anda ({s.nama} - {s.nim}):\n\n"
+                f"\"{payload.message}\"\n\n"
+                f"Mohon dapat ditinjau pada portal AIMS UNHAS."
+            )
+            notifier.send("WHATSAPP", s.advisor.whatsapp, adv_msg, student_id=s.id)
+            notified_advisors.add(s.advisor.id)
+
+    return {"status": "SUCCESS", "message": f"Broadcast sent via {payload.channel} to {sent_count}/{total_target} students (serta tembusan WA ke Dosen PA terkait)."}

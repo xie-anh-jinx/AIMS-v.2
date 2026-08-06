@@ -36,12 +36,17 @@ class WorkflowEngine:
                     .order_by(AcademicRecord.semester.desc())
                     .all()
                 )
+                advisor_wa = student.advisor.whatsapp if student.advisor else None
                 student_dict = {
                     "id": student.id,
                     "nim": student.nim,
                     "nama": student.nama,
+                    "prodi": student.prodi,
                     "semester": student.semester,
                     "nomor_whatsapp": student.nomor_whatsapp,
+                    "advisor_id": student.advisor_id,
+                    "advisor_nama": student.advisor.nama if student.advisor else None,
+                    "advisor_whatsapp": advisor_wa,
                 }
                 records_list = [
                     {"semester": r.semester, "ips": r.ips, "ipk": r.ipk, "sks": r.sks, "status": r.status}
@@ -99,9 +104,17 @@ class WorkflowEngine:
                 .order_by(AcademicRecord.semester.desc())
                 .all()
             )
+            advisor_wa = student.advisor.whatsapp if student.advisor else None
             student_dict = {
-                "id": student.id, "nim": student.nim, "nama": student.nama,
-                "semester": student.semester, "nomor_whatsapp": student.nomor_whatsapp,
+                "id": student.id,
+                "nim": student.nim,
+                "nama": student.nama,
+                "prodi": student.prodi,
+                "semester": student.semester,
+                "nomor_whatsapp": student.nomor_whatsapp,
+                "advisor_id": student.advisor_id,
+                "advisor_nama": student.advisor.nama if student.advisor else None,
+                "advisor_whatsapp": advisor_wa,
             }
             records_list = [
                 {"semester": r.semester, "ips": r.ips, "ipk": r.ipk, "sks": r.sks, "status": r.status}
@@ -122,6 +135,8 @@ class WorkflowEngine:
 
     def _execute_action(self, action: RuleAction, notifier: NotificationEngine, db):
         """Execute a single rule action: log it and send notifications."""
+        from packages.database.models import Advisor
+
         # Log the rule trigger
         db.add(AgentLog(
             event_type="RULE_TRIGGERED",
@@ -136,13 +151,36 @@ class WorkflowEngine:
         if action.student_whatsapp:
             notifier.send("WHATSAPP", action.student_whatsapp, action.message, action.student_id)
 
-        # Also notify advisor via Telegram for HIGH severity
+        # ALSO send WhatsApp notification via OpenClaw to Dosen PA
         if action.notify_advisor:
+            adv_wa = action.advisor_whatsapp
+            if not adv_wa and action.advisor_id:
+                adv_obj = db.query(Advisor).filter(Advisor.id == action.advisor_id).first()
+                if adv_obj and adv_obj.whatsapp:
+                    adv_wa = adv_obj.whatsapp
+
+            if adv_wa:
+                advisor_wa_msg = (
+                    f"🚨 *PERINGATAN OPENCLAW DOSEN PA - ZONA MERAH (DO)*\n\n"
+                    f"Yth. Bapak/Ibu Dosen PA *{action.advisor_nama or 'Penasihat Akademik'}*,\n\n"
+                    f"Mahasiswa bimbingan Anda berada di *Zona Merah (Risiko Tinggi/DO)*:\n"
+                    f"• Nama: *{action.student_nama}* ({action.student_nim})\n"
+                    f"• Detail Status: {action.message}\n\n"
+                    f"Mohon dapat segera mengagendakan bimbingan & evaluasi akademik mendesak."
+                ) if action.severity == "HIGH" else (
+                    f"⚠️ *PERINGATAN OPENCLAW DOSEN PA - ZONA KUNING*\n\n"
+                    f"Yth. Bapak/Ibu Dosen PA *{action.advisor_nama or 'Penasihat Akademik'}*,\n\n"
+                    f"Mahasiswa bimbingan Anda berada di *Zona Kuning (Peringatan)*:\n"
+                    f"• Nama: *{action.student_nama}* ({action.student_nim})\n"
+                    f"• Detail Status: {action.message}\n\n"
+                    f"Mohon pendampingan evaluasi KRS & perbaikan IPS."
+                )
+                notifier.send("WHATSAPP", adv_wa, advisor_wa_msg, action.student_id)
+
             # SYSTEM log (always)
             notifier.send("SYSTEM", "advisor-channel",
                           f"[ALERT] {action.rule_name}\n" + action.message, action.student_id)
-            # Telegram to advisor (requires advisor's Telegram chat_id to be stored)
-            # For now, broadcast to the configured Telegram bot so advisors can see it
+            # Telegram broadcast fallback
             notifier.send("TELEGRAM", "advisor-broadcast",
                           f"🚨 *AIMS ALERT*\n" + action.message, action.student_id)
 

@@ -4,11 +4,11 @@ import React, { useEffect, useState, useCallback } from 'react';
 import {useRouter} from 'next/navigation';
 import { 
   Menu, Users, AlertTriangle, Settings, LogOut, ChevronRight, Activity, Database,
-  Bell, Shield, Server, Eye, Search, X, Trash, User, Edit2, BookOpen, RefreshCw
+  Bell, Shield, Server, Eye, Search, X, Trash, User, Edit2, BookOpen, RefreshCw, Key
 } from 'lucide-react';
 import {PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Tooltip as RechartsTooltip, Legend} from 'recharts';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || '/api';
 
 interface DashboardStats {
   total_students: number;
@@ -44,11 +44,14 @@ interface TranscriptRecord {
 // Status color helpers
 const getStatusBadge = (status: string) => {
   switch (status) {
-    case 'Aktif':    return 'bg-green-500/10 text-green-400 border-green-500/20';
-    case 'Lulus':    return 'bg-blue-500/10 text-blue-400 border-blue-500/20';
-    case 'Drop Out': return 'bg-red-500/10 text-red-400 border-red-500/20';
-    case 'Cuti':     return 'bg-yellow-500/10 text-yellow-400 border-yellow-500/20';
-    default:         return 'bg-slate-500/10 text-slate-400 border-slate-500/20';
+    case 'Aktif':       return 'bg-green-500/10 text-green-400 border-green-500/20';
+    case 'Lulus':       return 'bg-blue-500/10 text-blue-400 border-blue-500/20';
+    case 'Drop Out':    return 'bg-red-500/10 text-red-400 border-red-500/20';
+    case 'Cuti':        return 'bg-yellow-500/10 text-yellow-400 border-yellow-500/20';
+    case 'Henti Studi': return 'bg-purple-500/10 text-purple-400 border-purple-500/20';
+    case 'Keluar':      return 'bg-amber-500/10 text-amber-400 border-amber-500/20';
+    case 'Non Aktif':   return 'bg-slate-500/10 text-slate-400 border-slate-500/20';
+    default:            return 'bg-slate-500/10 text-slate-400 border-slate-500/20';
   }
 };
 
@@ -91,6 +94,41 @@ export default function ProdiDashboard() {
   const [advisorsList, setAdvisorsList] = useState<any[]>([]);
   const [submittingAdminNote, setSubmittingAdminNote] = useState(false);
   const [sentAdminNotes, setSentAdminNotes] = useState<any[]>([]);
+
+  // Reset Password Dosen PA State
+  const [showResetModal, setShowResetModal] = useState(false);
+  const [resetTargetAdvisor, setResetTargetAdvisor] = useState<any>(null);
+  const [newPasswordInput, setNewPasswordInput] = useState('password123');
+  const [resetLoading, setResetLoading] = useState(false);
+
+  const handleResetAdvisorPassword = async () => {
+    if (!resetTargetAdvisor) return;
+    setResetLoading(true);
+    try {
+      const res = await fetch(`${API_URL}/prodi/reset-advisor-password`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...authHeaders() },
+        body: JSON.stringify({
+          advisor_id: resetTargetAdvisor.id,
+          new_password: newPasswordInput || 'password123'
+        })
+      });
+      const data = await res.json();
+      if (res.ok) {
+        alert(data.message || `Password untuk Dosen PA ${resetTargetAdvisor.nama} berhasil direset!`);
+        setShowResetModal(false);
+        setResetTargetAdvisor(null);
+        setNewPasswordInput('password123');
+      } else {
+        alert(data.detail || "Gagal mereset password Dosen PA.");
+      }
+    } catch (e) {
+      console.error(e);
+      alert("Gagal mereset password Dosen PA.");
+    } finally {
+      setResetLoading(false);
+    }
+  };
 
   // Profile Update State
   const [showProfileModal, setShowProfileModal] = useState(false);
@@ -740,7 +778,7 @@ export default function ProdiDashboard() {
                   <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)}
                     className="bg-[#1e293b] border border-[#334155] text-slate-300 text-xs px-3 py-2 rounded-lg focus:outline-none focus:border-blue-500">
                     <option value="">Semua Status</option>
-                    {['Aktif','Cuti','Lulus','Drop Out','Non Aktif'].map(s => <option key={s} value={s}>{s}</option>)}
+                    {['Aktif', 'Lulus', 'Henti Studi', 'Drop Out', 'Cuti', 'Keluar', 'Non Aktif'].map(s => <option key={s} value={s}>{s}</option>)}
                   </select>
                   <div className="relative flex-1 min-w-[200px]">
                     <input type="text" value={searchQuery} onChange={e => setSearchQuery(e.target.value)} onKeyDown={e => e.key === 'Enter' && applyFilters()}
@@ -853,15 +891,28 @@ export default function ProdiDashboard() {
                           <td className="py-3.5 px-5 text-sm text-slate-400">{adv.total_consultations || 0} Kali</td>
                           <td className="py-3.5 px-5 text-sm text-slate-400">{adv.warnings_sent || 0} Pesan</td>
                           <td className="py-3.5 px-5">
-                            <button
-                              onClick={() => {
-                                setAdminNoteForm({ advisor_id: adv.id.toString(), type: 'Peringatan', status: 'Warning', notes: '' });
-                                setShowAdminNoteModal(true);
-                              }}
-                              className="text-xs bg-orange-500/10 hover:bg-orange-500/20 text-orange-400 px-3 py-1.5 rounded-lg border border-orange-500/10 flex items-center gap-1.5 transition font-semibold"
-                            >
-                              <Bell size={12} /> Kirim Catatan
-                            </button>
+                            <div className="flex items-center gap-2">
+                              <button
+                                onClick={() => {
+                                  setAdminNoteForm({ advisor_id: adv.id.toString(), type: 'Peringatan', status: 'Warning', notes: '' });
+                                  setShowAdminNoteModal(true);
+                                }}
+                                className="text-xs bg-orange-500/10 hover:bg-orange-500/20 text-orange-400 px-3 py-1.5 rounded-lg border border-orange-500/10 flex items-center gap-1.5 transition font-semibold"
+                              >
+                                <Bell size={12} /> Kirim Catatan
+                              </button>
+                              <button
+                                onClick={() => {
+                                  setResetTargetAdvisor(adv);
+                                  setNewPasswordInput('password123');
+                                  setShowResetModal(true);
+                                }}
+                                className="text-xs bg-red-500/20 hover:bg-red-500/30 text-red-300 px-3 py-1.5 rounded-lg border border-red-500/30 flex items-center gap-1.5 transition font-semibold"
+                                title="Reset Password Dosen PA"
+                              >
+                                <Key size={12} /> Reset Password
+                              </button>
+                            </div>
                           </td>
                         </tr>
                       ))
@@ -980,7 +1031,24 @@ export default function ProdiDashboard() {
                         <div className="mt-2 inline-flex flex-wrap gap-2 text-xs">
                           <span className="bg-slate-800 text-slate-300 px-2.5 py-1 rounded-md border border-slate-700 flex items-center gap-1.5">
                             <Users size={12} className="text-slate-400" />
-                            PA: <strong className="text-slate-200">{s.advisor_name}</strong>
+                            PA:{' '}
+                            <strong 
+                              className="text-blue-400 hover:text-blue-300 hover:underline cursor-pointer transition-colors"
+                              onClick={() => {
+                                setAdminNoteForm({ 
+                                  advisor_id: s.advisor_id?.toString() || '', 
+                                  type: 'Peringatan', 
+                                  status: 'Warning', 
+                                  notes: `Peringatan evaluasi akademik mahasiswa: ${s.nama} (${s.nim})` 
+                                });
+                                setRiskModalOpen(false);
+                                setActiveTab('Riwayat Catatan PA');
+                                setShowAdminNoteModal(true);
+                              }}
+                              title="Klik untuk mengirim catatan peringatan ke Penasihat Akademik"
+                            >
+                              {s.advisor_name}
+                            </strong>
                           </span>
                         </div>
                       </div>
@@ -1221,6 +1289,63 @@ export default function ProdiDashboard() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* ── Modal: Reset Password Dosen PA ── */}
+      {showResetModal && resetTargetAdvisor && (
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-[#1e293b] border border-[#334155] rounded-xl max-w-md w-full p-6 shadow-xl space-y-4">
+            <div className="flex justify-between items-center border-b border-[#334155] pb-3">
+              <div className="flex items-center gap-2 text-red-400 font-bold text-sm">
+                <Key size={18} />
+                <span>Reset Password Dosen PA</span>
+              </div>
+              <button onClick={() => setShowResetModal(false)} className="text-slate-400 hover:text-white">
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="space-y-3">
+              <div className="bg-[#0b1121] p-3.5 rounded-lg border border-[#334155]/60 text-xs space-y-1">
+                <p className="text-slate-400">Dosen PA: <span className="text-white font-semibold">{resetTargetAdvisor.nama}</span></p>
+                {resetTargetAdvisor.username && (
+                  <p className="text-slate-400">Username Login: <span className="text-emerald-400 font-mono font-semibold">{resetTargetAdvisor.username}</span></p>
+                )}
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-300 mb-1">Password Baru</label>
+                <input
+                  type="text"
+                  value={newPasswordInput}
+                  onChange={(e) => setNewPasswordInput(e.target.value)}
+                  className="w-full bg-[#0b1121] border border-[#334155] rounded-lg px-3.5 py-2 text-sm text-white focus:outline-none focus:border-red-500 font-mono"
+                  placeholder="Masukkan password baru..."
+                />
+                <p className="text-[11px] text-slate-500 mt-1">Default password disarankan: <code className="text-slate-300">password123</code></p>
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-3 pt-2">
+              <button
+                type="button"
+                onClick={() => setShowResetModal(false)}
+                className="px-4 py-2 text-xs font-medium text-slate-300 hover:text-white bg-[#0b1121] border border-[#334155] rounded-lg transition"
+              >
+                Batal
+              </button>
+              <button
+                type="button"
+                onClick={handleResetAdvisorPassword}
+                disabled={resetLoading}
+                className="px-4 py-2 text-xs font-semibold text-white bg-red-600 hover:bg-red-500 rounded-lg transition flex items-center gap-2 disabled:opacity-50"
+              >
+                {resetLoading ? <RefreshCw className="animate-spin" size={14} /> : <Key size={14} />}
+                Reset Password
+              </button>
+            </div>
           </div>
         </div>
       )}

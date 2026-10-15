@@ -9,7 +9,7 @@ Academic Intelligence Management System (AIMS) adalah platform sistem informasi 
 > Aplikasi AIMS **TIDAK memiliki fungsi untuk menambah, mengubah, memanipulasi, atau mengedit** data riil apapun pada NeoSIA. AIMS didedikasikan sepenuhnya sebagai *alat bantu pendukung koordinasi akademik* yang menitikberatkan pada tiga fungsi utama:
 > 1. Fasilitas **Pemantauan (Monitoring)** proaktif.
 > 2. Perekaman **Koordinasi Log** antara dosen PA dan mahasiswa.
-> 3. Fasilitas penyiar **Pengingat / Notifikasi (Reminder)**.
+> 3. Fasilitas broadcast **Pengingat / Notifikasi (Reminder)**.
 
 ---
 
@@ -68,8 +68,8 @@ npm run dev
 
 ### Panduan Tautan Eksekusi Dasar
 *   🔗 **Backend API & Swagger REST Docs:** `http://localhost:8000/docs`
-*   🔗 **Griya Terpadu (Mahasiswa & Dosen):** `http://localhost:3000`
-*   🔗 **Ruang Komando Pengaturan Admin:** `http://localhost:3002`
+*   🔗 **Dashboard(Mahasiswa & Dosen):** `http://localhost:3000`
+*   🔗 **Pengaturan Admin:** `http://localhost:3002`
 
 ---
 

@@ -78,4 +78,4 @@ Sistem logikal dasar milik AIMS berkapabilitas masif untuk terus dimajukan menja
 1. **Layanan Interaktif LLM (AI Chatbot AIMS):** Pembaruan agen bot Telegram/WhatsApp kampus agar tak sekadar pasif melempar peringatan statis, tapi menjadi sarana tanyajawab di mana AI mampu membalas pertanyaan seperti, *"Dokumen syarat apa saja jika IPS saya < 1.0 kelak?"* dan merancang jadwal belajar proaktif menelisik dokumen kurikulum prodi.
 2. **Kalkulator Kegagalan (Machine Learning Predictions):** Bertransformasi dari pengecekan kondisi konvensional IF/ELSE ruleset *threshold* SPP—menjadi penerapan rumusan algoritma prediktif, di mana mesin mampu membaca tendensi data dari profil lulusan sepuluh (10) tahun terakhir guna meraba apakah maba *(mahasiswa baru)* berpeluang drop-out hanya bermodal capaian KHS semester pertamanya.
 
-*Hak Cipta (c) Integrasi Inovasi Akademik Pusat.*
+*Hak Cipta (c) Digiweave.*
